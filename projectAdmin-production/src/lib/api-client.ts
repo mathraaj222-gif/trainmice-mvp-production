@@ -53,8 +53,18 @@ export class ApiClient {
       const response = await fetch(url, { ...options, headers });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(error.error || `Request failed: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        
+        // Handle validation errors (400) with detailed messages
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          const errorMessages = errorData.errors.map((err: any) => 
+            `${err.param || err.path}: ${err.msg || err.message || 'Invalid value'}`
+          ).join(', ');
+          throw new Error(errorMessages);
+        }
+        
+        // Handle other errors
+        throw new Error(errorData.error || errorData.message || `Request failed: ${response.statusText}`);
       }
 
       const contentType = response.headers.get('content-type');

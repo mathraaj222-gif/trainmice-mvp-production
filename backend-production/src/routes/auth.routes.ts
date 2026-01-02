@@ -42,12 +42,14 @@ router.post(
       const passwordHash = await hashPassword(password);
 
       // Create user
+      // Admins don't need email verification - set emailVerified to true
       const user = await prisma.user.create({
         data: {
           email,
           passwordHash,
           fullName,
           role,
+          emailVerified: role === 'ADMIN' ? true : false, // Auto-verify admin accounts
         },
         select: {
           id: true,
