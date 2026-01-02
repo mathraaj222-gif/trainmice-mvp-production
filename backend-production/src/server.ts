@@ -34,19 +34,22 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Normalize origin by removing trailing slash for comparison
+    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+
     // Log CORS requests for debugging
     if (config.nodeEnv === 'development') {
-      console.log(`🔍 CORS check - Origin: ${origin}`);
+      console.log(`🔍 CORS check - Origin: ${normalizedOrigin}`);
       console.log(`🔍 Allowed origins: ${config.cors.origins.join(', ')}`);
     }
 
-    if (config.cors.origins.includes(origin)) {
+    if (config.cors.origins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
       // Log rejected origins for debugging
-      console.warn(`⚠️  CORS rejected origin: ${origin}`);
+      console.warn(`⚠️  CORS rejected origin: ${normalizedOrigin}`);
       console.warn(`⚠️  Allowed origins: ${config.cors.origins.join(', ')}`);
-      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
+      callback(new Error(`Not allowed by CORS. Origin: ${normalizedOrigin}`));
     }
   },
   credentials: config.cors.credentials,

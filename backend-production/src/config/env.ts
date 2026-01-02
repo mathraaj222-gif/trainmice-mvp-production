@@ -32,12 +32,17 @@ const validateOrigin = (url: string): boolean => {
   }
 };
 
+// Normalize URL by removing trailing slash
+const normalizeUrl = (url: string): string => {
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+};
+
 const getCorsOrigins = () => {
   const origins: string[] = [];
   
   if (process.env.FRONTEND_URL_CLIENT) {
     if (validateOrigin(process.env.FRONTEND_URL_CLIENT)) {
-      origins.push(process.env.FRONTEND_URL_CLIENT);
+      origins.push(normalizeUrl(process.env.FRONTEND_URL_CLIENT));
     } else {
       console.warn(`⚠️  Invalid FRONTEND_URL_CLIENT: ${process.env.FRONTEND_URL_CLIENT}`);
     }
@@ -45,7 +50,7 @@ const getCorsOrigins = () => {
   
   if (process.env.FRONTEND_URL_TRAINER) {
     if (validateOrigin(process.env.FRONTEND_URL_TRAINER)) {
-      origins.push(process.env.FRONTEND_URL_TRAINER);
+      origins.push(normalizeUrl(process.env.FRONTEND_URL_TRAINER));
     } else {
       console.warn(`⚠️  Invalid FRONTEND_URL_TRAINER: ${process.env.FRONTEND_URL_TRAINER}`);
     }
@@ -53,7 +58,7 @@ const getCorsOrigins = () => {
   
   if (process.env.FRONTEND_URL_ADMIN) {
     if (validateOrigin(process.env.FRONTEND_URL_ADMIN)) {
-      origins.push(process.env.FRONTEND_URL_ADMIN);
+      origins.push(normalizeUrl(process.env.FRONTEND_URL_ADMIN));
     } else {
       console.warn(`⚠️  Invalid FRONTEND_URL_ADMIN: ${process.env.FRONTEND_URL_ADMIN}`);
     }
@@ -67,7 +72,11 @@ const getCorsOrigins = () => {
 
   // Fallback to localhost in development
   if (origins.length === 0) {
-    origins.push('http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175');
+    origins.push(
+      normalizeUrl('http://localhost:5173'),
+      normalizeUrl('http://localhost:5174'),
+      normalizeUrl('http://localhost:5175')
+    );
   }
 
   return origins;
