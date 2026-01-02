@@ -661,13 +661,6 @@ export class ApiClient {
   // TRAINER RECOMMENDATION
   // ============================================================================
 
-  async getTrainerMessages(params?: { page?: number; limit?: number; isRead?: boolean }) {
-    return this.get<{ messages: any[]; total: number; page: number; totalPages: number }>(
-      '/admin/trainer-messages',
-      params
-    );
-  }
-
   async getEventEnquiries(params?: { page?: number; limit?: number; isRead?: boolean; eventId?: string }) {
     return this.get<{ enquiries: any[]; total: number; page: number; totalPages: number }>(
       '/admin/event-enquiries',
