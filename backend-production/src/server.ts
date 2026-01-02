@@ -26,7 +26,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS configuration
+// CORS configuration with enhanced logging
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -34,10 +34,19 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Log CORS requests for debugging
+    if (config.nodeEnv === 'development') {
+      console.log(`🔍 CORS check - Origin: ${origin}`);
+      console.log(`🔍 Allowed origins: ${config.cors.origins.join(', ')}`);
+    }
+
     if (config.cors.origins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // Log rejected origins for debugging
+      console.warn(`⚠️  CORS rejected origin: ${origin}`);
+      console.warn(`⚠️  Allowed origins: ${config.cors.origins.join(', ')}`);
+      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
     }
   },
   credentials: config.cors.credentials,
@@ -131,6 +140,23 @@ app.use((req: Request, res: Response) => {
 
 // Global error handler
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  // Handle CORS errors specifically
+  if (err.message && err.message.includes('CORS')) {
+    console.error('❌ CORS Error:', {
+      message: err.message,
+      origin: req.headers.origin,
+      path: req.path,
+      method: req.method,
+      allowedOrigins: config.cors.origins,
+      timestamp: new Date().toISOString(),
+    });
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: err.message,
+      allowedOrigins: config.cors.origins,
+    });
+  }
+
   // Don't log errors for 404s
   if (err.status !== 404) {
     console.error('Error:', {
@@ -190,7 +216,13 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${config.nodeEnv}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔒 CORS origins: ${config.cors.origins.join(', ')}`);
+  console.log(`🔒 CORS Configuration:`);
+  console.log(`   - Allowed origins: ${config.cors.origins.length > 0 ? config.cors.origins.join(', ') : 'NONE SET!'}`);
+  console.log(`   - Credentials: ${config.cors.credentials}`);
+  console.log(`   - Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH`);
+  if (config.cors.origins.length === 0 && config.nodeEnv === 'production') {
+    console.error(`❌ WARNING: No CORS origins configured! Set FRONTEND_URL_ADMIN in Railway!`);
+  }
 });
 
 // Graceful shutdown

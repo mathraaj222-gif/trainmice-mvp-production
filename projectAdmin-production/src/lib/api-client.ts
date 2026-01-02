@@ -15,8 +15,15 @@ export class ApiClient {
   private token: string | null = null;
 
   constructor() {
-    this.baseUrl = API_BASE_URL;
+    // Normalize base URL to remove trailing slash
+    this.baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     this.token = localStorage.getItem('token');
+  }
+
+  private normalizeUrl(endpoint: string): string {
+    // Normalize URL to avoid double slashes
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${this.baseUrl}${normalizedEndpoint}`;
   }
 
   setToken(token: string | null) {
@@ -33,7 +40,7 @@ export class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = this.normalizeUrl(endpoint);
     const token = this.getToken();
 
     const headers: HeadersInit = {
@@ -66,7 +73,7 @@ export class ApiClient {
   }
 
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(`${this.baseUrl}${endpoint}`, window.location.origin);
+    const url = new URL(this.normalizeUrl(endpoint), window.location.origin);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
