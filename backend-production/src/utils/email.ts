@@ -31,7 +31,6 @@ export async function sendVerificationEmail({
   const frontendUrl = role === 'CLIENT' 
     ? config.cors.clientUrl 
     : config.cors.trainerUrl;
-  const frontendVerificationUrl = `${frontendUrl}/verify-email-success?token=${token}`;
 
   const htmlContent = `
     <!DOCTYPE html>
