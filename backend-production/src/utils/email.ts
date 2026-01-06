@@ -42,7 +42,7 @@ export async function sendVerificationEmail({
           <h1 style="color: white; margin: 0;">TrainMICE</h1>
         </div>
         
-        <div style="background:rgb(23, 231, 186); padding: 30px; border-radius: 0 0 10px 10px;">
+        <div style="background:rgb(255, 255, 255); padding: 30px; border-radius: 0 0 10px 10px;">
           <h2 style="color: #333; margin-top: 0;">Hello,</h2>
           
           <p>Thank you for signing up with TrainMICE!</p>
@@ -54,10 +54,10 @@ export async function sendVerificationEmail({
               <td align="center">
                 <table cellpadding="0" cellspacing="0">
                   <tr>
-                    <td align="center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 5px;">
+                    <td align="center" style="background: #14b8a6; border-radius: 5px;">
                       <a href="${verificationUrl}" 
                          style="display: block; padding: 15px 30px; text-decoration: none; 
-                                color: #ffffff; font-weight: bold; font-size: 16px; 
+                                color: #ffd700; font-weight: bold; font-size: 16px; 
                                 border-radius: 5px; font-family: Arial, sans-serif;">
                         Verify Now
                       </a>

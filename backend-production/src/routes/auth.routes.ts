@@ -416,7 +416,7 @@ const handleEmailVerification = async (token: string, res: Response) => {
     },
   });
 
-  // Redirect to frontend success page
+  // Redirect to frontend home page (success page will auto-close/redirect)
   const frontendUrl = user.role === 'CLIENT' 
     ? process.env.FRONTEND_URL_CLIENT || 'http://localhost:5173'
     : process.env.FRONTEND_URL_TRAINER || 'http://localhost:5174';

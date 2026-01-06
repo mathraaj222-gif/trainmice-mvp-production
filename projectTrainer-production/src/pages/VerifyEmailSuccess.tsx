@@ -1,8 +1,20 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 
 export function VerifyEmailSuccess() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Show success message for 2 seconds, then redirect to login page
+    const timer = setTimeout(() => {
+      navigate('/login');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
@@ -14,12 +26,9 @@ export function VerifyEmailSuccess() {
           <p className="text-gray-600 mb-6">
             Your email address has been successfully verified. Your account is now active.
           </p>
-          <Link
-            to="/login"
-            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Continue to Login
-          </Link>
+          <p className="text-sm text-gray-500">
+            This window will close automatically...
+          </p>
         </CardContent>
       </Card>
     </div>
