@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, LogOut, BookOpen, Mail, Leaf, Menu, X } from 'lucide-react';
+import { User, LogOut, Menu, X } from 'lucide-react';
 import { auth, type User as AuthUser } from '../lib/auth';
+import trainMICELogo from '../TrainMICE logo.png';
 
 type HeaderProps = {
   onLoginClick: () => void;
@@ -37,7 +38,7 @@ export function Header({ onLoginClick, onSignupClick }: HeaderProps) {
     return () => unsubscribe();
   }, []);
 
-  const fetchUserName = async (userId: string) => {
+  const fetchUserName = async (_userId: string) => {
     // Use fullName from user object directly
     if (user?.fullName) {
       setUserName(user.fullName);
@@ -59,26 +60,12 @@ export function Header({ onLoginClick, onSignupClick }: HeaderProps) {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Navigation - Centered */}
           <div className="flex items-center justify-center flex-1 gap-6">
-            <a href="/" className="flex items-center gap-2">
+            <a href="/" className="flex items-center">
               <img 
-                src="/logo.png" 
+                src={trainMICELogo} 
                 alt="TrainMICE Logo" 
-                className="h-8 w-auto"
-                onError={(e) => {
-                  // Fallback to icon if image not found
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  if (target.nextElementSibling) {
-                    (target.nextElementSibling as HTMLElement).style.display = 'flex';
-                  }
-                }}
+                className="h-10 w-auto"
               />
-              <div className="flex items-center gap-2" style={{ display: 'none' }}>
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
-                  <Leaf className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-gray-900">TrainMICE</span>
-              </div>
             </a>
 
             {/* Navigation Links - Centered */}
