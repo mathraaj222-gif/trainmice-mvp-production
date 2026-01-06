@@ -81,7 +81,7 @@ Thank you for signing up with TrainMICE!
 
 Please click the "Verify Now" button in the HTML version of this email to verify your email address and activate your account.
 
-Verification link: ${verificationUrl}
+Please open this email in an HTML-capable email client and click the "Verify Now" button.
 
 This verification link will expire in 24 hours.
 
