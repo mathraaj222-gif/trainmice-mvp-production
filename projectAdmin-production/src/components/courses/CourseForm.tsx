@@ -31,7 +31,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
     schedule: course ? true : false,
     trainers: true,
   });
-  const [scheduleItems, setScheduleItems] = useState<Array<ScheduleItemData & { id: string; submodules: string[] }>>([]);
+  const [scheduleItems, setScheduleItems] = useState<Array<ScheduleItemData & { id: string; submodules: string[]; module_titles?: string[] }>>([]);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   // Helper to safely access course properties that might not be in the type definition
   const getCourseField = (field: string) => {
@@ -283,27 +283,73 @@ export const CourseForm: React.FC<CourseFormProps> = ({
       const schedule = response.schedule || [];
 
       // Transform schedule items to match ScheduleBuilder format
-      // Group by day_number, start_time, and module_title to combine submodules
+      // Handle both old format (string) and new format (array)
       const scheduleWithSubmodules = schedule.reduce((acc: any[], item: any) => {
+        // Parse module_title - can be string or array
+        let moduleTitles: string[] = [];
+        if (Array.isArray(item.moduleTitle)) {
+          moduleTitles = item.moduleTitle;
+        } else if (typeof item.moduleTitle === 'string' && item.moduleTitle) {
+          moduleTitles = [item.moduleTitle];
+        } else if (item.module_title) {
+          // Handle snake_case from backend
+          if (Array.isArray(item.module_title)) {
+            moduleTitles = item.module_title;
+          } else if (typeof item.module_title === 'string') {
+            moduleTitles = [item.module_title];
+          }
+        }
+
+        // Parse submodule_title - can be string, array, or null
+        let submoduleTitles: string[] = [];
+        if (Array.isArray(item.submoduleTitle)) {
+          submoduleTitles = item.submoduleTitle;
+        } else if (typeof item.submoduleTitle === 'string' && item.submoduleTitle) {
+          submoduleTitles = [item.submoduleTitle];
+        } else if (item.submodule_title) {
+          // Handle snake_case from backend
+          if (Array.isArray(item.submodule_title)) {
+            submoduleTitles = item.submodule_title;
+          } else if (typeof item.submodule_title === 'string') {
+            submoduleTitles = [item.submodule_title];
+          }
+        }
+
+        // Find existing item with same day and time
         const existingItem = acc.find(
           (i) =>
-            i.day_number === item.day_number &&
-            i.start_time === item.start_time &&
-            i.module_title === item.module_title
+            i.day_number === item.dayNumber || i.day_number === item.day_number &&
+            i.start_time === (item.startTime || item.start_time)
         );
 
-        if (existingItem && item.submodule_title) {
-          existingItem.submodules.push(item.submodule_title);
+        if (existingItem) {
+          // Merge modules and submodules
+          moduleTitles.forEach(moduleTitle => {
+            if (moduleTitle && !existingItem.module_titles?.includes(moduleTitle)) {
+              if (!existingItem.module_titles) existingItem.module_titles = [];
+              existingItem.module_titles.push(moduleTitle);
+            }
+          });
+          submoduleTitles.forEach(submoduleTitle => {
+            if (submoduleTitle && !existingItem.submodules.includes(submoduleTitle)) {
+              existingItem.submodules.push(submoduleTitle);
+            }
+          });
+          // Update display module_title to first one
+          if (moduleTitles.length > 0) {
+            existingItem.module_title = moduleTitles[0];
+          }
         } else {
           acc.push({
-            id: item.id || `day-${item.day_number}-${item.start_time}`,
-            day_number: item.day_number,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            module_title: item.module_title || '',
-            submodule_title: item.submodule_title || null,
-            duration_minutes: item.duration_minutes || 120,
-            submodules: item.submodule_title ? [item.submodule_title] : [],
+            id: item.id || `day-${item.dayNumber || item.day_number}-${item.startTime || item.start_time}`,
+            day_number: item.dayNumber || item.day_number,
+            start_time: item.startTime || item.start_time,
+            end_time: item.endTime || item.end_time,
+            module_title: moduleTitles[0] || '', // Display first module
+            module_titles: moduleTitles, // All modules
+            submodule_title: null,
+            duration_minutes: item.durationMinutes || item.duration_minutes || 120,
+            submodules: submoduleTitles,
           });
         }
 
@@ -431,32 +477,24 @@ export const CourseForm: React.FC<CourseFormProps> = ({
       // Prepare schedule to save - use camelCase to match backend expectations
       const scheduleToSave: any[] = [];
       scheduleItems.forEach((item) => {
-        // Only save if module_title is not empty
-        if (item.module_title && item.module_title.trim()) {
-          if (item.submodules.length > 0) {
-            item.submodules.forEach((submodule) => {
-              if (submodule.trim()) {
-                scheduleToSave.push({
-                  dayNumber: item.day_number,
-                  startTime: item.start_time,
-                  endTime: item.end_time,
-                  moduleTitle: item.module_title,
-                  submoduleTitle: submodule,
-                  durationMinutes: item.duration_minutes,
-                });
-              }
-            });
-          } else {
-            // Save module even without submodules
-            scheduleToSave.push({
-              dayNumber: item.day_number,
-              startTime: item.start_time,
-              endTime: item.end_time,
-              moduleTitle: item.module_title,
-              submoduleTitle: null,
-              durationMinutes: item.duration_minutes,
-            });
-          }
+        // Get module titles - use new array format if available, otherwise use single module_title
+        const moduleTitles = (item as any).module_titles && Array.isArray((item as any).module_titles) 
+          ? (item as any).module_titles.filter((m: string) => m && m.trim())
+          : (item.module_title && item.module_title.trim() ? [item.module_title] : []);
+
+        // Only save if there's at least one module title
+        if (moduleTitles.length > 0) {
+          // Save one row per day/session with arrays
+          scheduleToSave.push({
+            dayNumber: item.day_number,
+            startTime: item.start_time,
+            endTime: item.end_time,
+            moduleTitle: moduleTitles, // Array format
+            submoduleTitle: item.submodules && item.submodules.length > 0 
+              ? item.submodules.filter((s: string) => s && s.trim()) // Array format
+              : null,
+            durationMinutes: item.duration_minutes,
+          });
         }
       });
 

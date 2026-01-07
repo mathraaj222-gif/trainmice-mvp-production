@@ -40,55 +40,76 @@ export function CourseScheduleModal({ course, onClose }: CourseScheduleModalProp
   // Helper to get session name from time
   const getSessionName = (startTime: string) => {
     const [hours] = startTime.split(':').map(Number);
-    if (hours >= 9 && hours < 11) return 'Morning';
-    if (hours >= 11 && hours < 14) return 'Afternoon';
-    if (hours >= 14 && hours < 16) return 'Evening';
-    if (hours >= 16 && hours < 18) return 'End';
+    if (hours >= 9 && hours < 11) return 'Session 1';
+    if (hours >= 11 && hours < 14) return 'Session 2';
+    if (hours >= 14 && hours < 16) return 'Session 3';
+    if (hours >= 16 && hours < 18) return 'Session 4';
     return 'Session';
   };
 
   // Group schedule items by day, then by session (grouping submodules under modules)
   // Only include items that have a module_title (filter out empty/untitled modules)
-  const groupByDayAndSession = (items: CourseSchedule[]) => {
+  const groupByDayAndSession = (items: any[]) => {
     const grouped: Record<number, Array<{
       day_number: number;
       start_time: string;
       end_time: string;
       module_title: string;
+      module_titles: string[];
       submodules: string[];
     }>> = {};
     
-    // Filter out items with empty or no module_title
-    const validItems = items.filter(item => item.module_title && item.module_title.trim() !== '');
-    
-    validItems.forEach(item => {
+    items.forEach(item => {
+      // Handle both old format (string) and new format (array)
+      const moduleTitles = (item.module_titles && Array.isArray(item.module_titles))
+        ? item.module_titles.filter((m: string) => m && m.trim())
+        : (item.module_title && typeof item.module_title === 'string' && item.module_title.trim() 
+          ? [item.module_title] 
+          : []);
+      
+      const submodules = (item.submodules && Array.isArray(item.submodules))
+        ? item.submodules.filter((s: string) => s && s.trim())
+        : (item.submodule_title && typeof item.submodule_title === 'string' && item.submodule_title.trim()
+          ? [item.submodule_title]
+          : []);
+
+      // Only process items with at least one module title
+      if (moduleTitles.length === 0) return;
+
       if (!grouped[item.day_number]) {
         grouped[item.day_number] = [];
       }
       
-      // Find existing session with same day, time, and module
+      // Find existing session with same day and time
       const existing = grouped[item.day_number].find(
         s => s.start_time === item.start_time && 
-             s.end_time === item.end_time && 
-             s.module_title === item.module_title
+             s.end_time === item.end_time
       );
       
       if (existing) {
-        // Add submodule if it exists and isn't already in the list
-        if (item.submodule_title && item.submodule_title.trim() && !existing.submodules.includes(item.submodule_title)) {
-          existing.submodules.push(item.submodule_title);
-        }
+        // Merge module titles and submodules
+        moduleTitles.forEach((moduleTitle: string) => {
+          if (!existing.module_titles.includes(moduleTitle)) {
+            existing.module_titles.push(moduleTitle);
+          }
+        });
+        submodules.forEach((submodule: string) => {
+          if (!existing.submodules.includes(submodule)) {
+            existing.submodules.push(submodule);
+          }
+        });
+        // Update display module_title to first one
+        existing.module_title = existing.module_titles[0] || '';
       } else {
-        // Create new session entry only if module_title is not empty
-        if (item.module_title && item.module_title.trim()) {
-          grouped[item.day_number].push({
-            day_number: item.day_number,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            module_title: item.module_title,
-            submodules: item.submodule_title && item.submodule_title.trim() ? [item.submodule_title] : []
-          });
-        }
+        // Create new session entry
+        grouped[item.day_number].push({
+          day_number: item.day_number,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          module_title: moduleTitles[0] || '', // Display first module
+          module_titles: moduleTitles, // All modules
+          submodules: submodules
+        });
       }
     });
     
@@ -172,7 +193,11 @@ export function CourseScheduleModal({ course, onClose }: CourseScheduleModalProp
                                     {formatTime(item.start_time)} - {formatTime(item.end_time)}
                                   </span>
                                 </div>
-                                <h4 className="font-medium text-gray-900">{item.module_title}</h4>
+                                <h4 className="font-medium text-gray-900">
+                                  {item.module_titles && item.module_titles.length > 0
+                                    ? item.module_titles.join(', ')
+                                    : item.module_title}
+                                </h4>
                               </div>
                             </div>
 

@@ -62,7 +62,7 @@ export function MyCourses() {
   const [showForm, setShowForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [scheduleItems, setScheduleItems] = useState<Array<ScheduleItemData & { id: string; submodules: string[] }>>([]);
+  const [scheduleItems, setScheduleItems] = useState<Array<ScheduleItemData & { id: string; submodules: string[]; module_titles?: string[] }>>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -111,25 +111,53 @@ export function MyCourses() {
 
     try {
       const schedule = await fetchCourseSchedule(course.id);
+      // Handle both old format (string) and new format (array)
       const scheduleWithSubmodules = schedule.reduce((acc: any[], item) => {
+        // Parse module_title - can be string or array
+        let moduleTitles: string[] = [];
+        if (Array.isArray(item.module_title)) {
+          moduleTitles = item.module_title;
+        } else if (typeof item.module_title === 'string' && item.module_title) {
+          moduleTitles = [item.module_title];
+        }
+
+        // Parse submodule_title - can be string, array, or null
+        let submoduleTitles: string[] = [];
+        if (Array.isArray(item.submodule_title)) {
+          submoduleTitles = item.submodule_title;
+        } else if (typeof item.submodule_title === 'string' && item.submodule_title) {
+          submoduleTitles = [item.submodule_title];
+        }
+
+        // Find existing item with same day and time
         const existingItem = acc.find(
           i => i.day_number === item.day_number &&
-               i.start_time === item.start_time &&
-               i.module_title === item.module_title
+               i.start_time === item.start_time
         );
 
-        if (existingItem && item.submodule_title) {
-          existingItem.submodules.push(item.submodule_title);
+        if (existingItem) {
+          // Merge modules and submodules
+          moduleTitles.forEach(moduleTitle => {
+            if (moduleTitle && !existingItem.module_titles.includes(moduleTitle)) {
+              existingItem.module_titles.push(moduleTitle);
+            }
+          });
+          submoduleTitles.forEach(submoduleTitle => {
+            if (submoduleTitle && !existingItem.submodules.includes(submoduleTitle)) {
+              existingItem.submodules.push(submoduleTitle);
+            }
+          });
         } else {
           acc.push({
             id: item.id,
             day_number: item.day_number,
             start_time: item.start_time,
             end_time: item.end_time,
-            module_title: item.module_title,
+            module_title: moduleTitles[0] || '', // Keep for backward compatibility
+            module_titles: moduleTitles, // New array format
             submodule_title: null,
             duration_minutes: item.duration_minutes,
-            submodules: item.submodule_title ? [item.submodule_title] : []
+            submodules: submoduleTitles
           });
         }
 
@@ -305,32 +333,24 @@ export function MyCourses() {
           const scheduleToSave: ScheduleItemData[] = [];
 
           scheduleItems.forEach(item => {
-            // Only save if module_title is not empty
-            if (item.module_title && item.module_title.trim()) {
-              if (item.submodules.length > 0) {
-                item.submodules.forEach(submodule => {
-                  if (submodule.trim()) {
-                    scheduleToSave.push({
-                      day_number: item.day_number,
-                      start_time: item.start_time,
-                      end_time: item.end_time,
-                      module_title: item.module_title,
-                      submodule_title: submodule,
-                      duration_minutes: item.duration_minutes
-                    });
-                  }
-                });
-              } else {
-                // Save module even without submodules
-                scheduleToSave.push({
-                  day_number: item.day_number,
-                  start_time: item.start_time,
-                  end_time: item.end_time,
-                  module_title: item.module_title,
-                  submodule_title: null,
-                  duration_minutes: item.duration_minutes
-                });
-              }
+            // Get module titles - use new array format if available, otherwise use single module_title
+            const moduleTitles = (item as any).module_titles && Array.isArray((item as any).module_titles) 
+              ? (item as any).module_titles.filter((m: string) => m && m.trim())
+              : (item.module_title && item.module_title.trim() ? [item.module_title] : []);
+
+            // Only save if there's at least one module title
+            if (moduleTitles.length > 0) {
+              // Save one row per day/session with arrays
+              scheduleToSave.push({
+                day_number: item.day_number,
+                start_time: item.start_time,
+                end_time: item.end_time,
+                module_title: moduleTitles, // Array format
+                submodule_title: item.submodules && item.submodules.length > 0 
+                  ? item.submodules.filter((s: string) => s && s.trim()) // Array format
+                  : null,
+                duration_minutes: item.duration_minutes
+              });
             }
           });
 

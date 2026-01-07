@@ -26,8 +26,8 @@ export interface ScheduleItemData {
   day_number: number;
   start_time: string;
   end_time: string;
-  module_title: string;
-  submodule_title: string | null;
+  module_title: string | string[]; // Can be string (backward compat) or array
+  submodule_title: string | string[] | null; // Can be string (backward compat) or array
   duration_minutes: number;
 }
 
@@ -289,28 +289,55 @@ export async function deleteCourse(courseId: string) {
 
 export async function saveCourseSchedule(courseId: string, scheduleItems: ScheduleItemData[]) {
   try {
-    const payload = scheduleItems.map((item) => ({
-      dayNumber: item.day_number,
-      startTime: item.start_time,
-      endTime: item.end_time,
-      moduleTitle: item.module_title,
-      submoduleTitle: item.submodule_title,
-      durationMinutes: item.duration_minutes,
-    }));
+    const payload = scheduleItems.map((item) => {
+      // Ensure module_title is an array
+      const moduleTitleArray = Array.isArray(item.module_title) 
+        ? item.module_title 
+        : (item.module_title ? [item.module_title] : []);
+      
+      // Ensure submodule_title is an array or null
+      let submoduleTitleArray: string[] | null = null;
+      if (item.submodule_title) {
+        if (Array.isArray(item.submodule_title)) {
+          submoduleTitleArray = item.submodule_title;
+        } else {
+          submoduleTitleArray = [item.submodule_title];
+        }
+      }
+
+      return {
+        dayNumber: item.day_number,
+        startTime: item.start_time,
+        endTime: item.end_time,
+        moduleTitle: moduleTitleArray,
+        submoduleTitle: submoduleTitleArray,
+        durationMinutes: item.duration_minutes,
+      };
+    });
     const result = await apiClient.put<{ schedule: any[] }>(`/courses/${courseId}/schedule`, {
       items: payload,
     });
-    return (result.schedule || []).map((s) => ({
-      id: s.id,
-      course_id: s.courseId,
-      day_number: s.dayNumber,
-      start_time: s.startTime,
-      end_time: s.endTime,
-      module_title: s.moduleTitle,
-      submodule_title: s.submoduleTitle ?? null,
-      duration_minutes: s.durationMinutes,
-      created_at: s.createdAt,
-    })) as CourseSchedule[];
+    return (result.schedule || []).map((s) => {
+      // Parse arrays from backend response
+      const moduleTitle = Array.isArray(s.moduleTitle) ? s.moduleTitle : (s.moduleTitle ? [s.moduleTitle] : []);
+      const submoduleTitle = Array.isArray(s.submoduleTitle) 
+        ? s.submoduleTitle 
+        : (s.submoduleTitle ? [s.submoduleTitle] : null);
+
+      return {
+        id: s.id,
+        course_id: s.courseId,
+        day_number: s.dayNumber,
+        start_time: s.startTime,
+        end_time: s.endTime,
+        module_title: moduleTitle.length > 0 ? moduleTitle[0] : '', // Backward compat
+        module_titles: moduleTitle, // New format
+        submodule_title: submoduleTitle && submoduleTitle.length > 0 ? submoduleTitle[0] : null, // Backward compat
+        submodules: submoduleTitle || [], // New format
+        duration_minutes: s.durationMinutes,
+        created_at: s.createdAt,
+      };
+    }) as any[];
   } catch (error: any) {
     console.error('Failed to save schedule:', error);
     throw new Error(error?.message || 'Failed to save schedule');
@@ -321,17 +348,27 @@ export async function fetchCourseSchedule(courseId: string) {
   try {
     const result = await apiClient.get<{ course: any }>(`/courses/${courseId}`);
     const schedule = result.course?.courseSchedule || [];
-    return schedule.map((s: any) => ({
-      id: s.id,
-      course_id: s.courseId,
-      day_number: s.dayNumber,
-      start_time: s.startTime,
-      end_time: s.endTime,
-      module_title: s.moduleTitle,
-      submodule_title: s.submoduleTitle ?? null,
-      duration_minutes: s.durationMinutes,
-      created_at: s.createdAt,
-    })) as CourseSchedule[];
+    return schedule.map((s: any) => {
+      // Parse arrays from backend - handle both old (string) and new (array) formats
+      const moduleTitle = Array.isArray(s.moduleTitle) ? s.moduleTitle : (s.moduleTitle ? [s.moduleTitle] : []);
+      const submoduleTitle = Array.isArray(s.submoduleTitle) 
+        ? s.submoduleTitle 
+        : (s.submoduleTitle ? [s.submoduleTitle] : null);
+
+      return {
+        id: s.id,
+        course_id: s.courseId,
+        day_number: s.dayNumber,
+        start_time: s.startTime,
+        end_time: s.endTime,
+        module_title: moduleTitle.length > 0 ? moduleTitle[0] : '', // Backward compat
+        module_titles: moduleTitle, // New format
+        submodule_title: submoduleTitle && submoduleTitle.length > 0 ? submoduleTitle[0] : null, // Backward compat
+        submodules: submoduleTitle || [], // New format
+        duration_minutes: s.durationMinutes,
+        created_at: s.createdAt,
+      };
+    }) as any[];
   } catch (error: any) {
     console.error('Error fetching course schedule:', error);
     throw new Error(error?.message || 'Failed to load course schedule');

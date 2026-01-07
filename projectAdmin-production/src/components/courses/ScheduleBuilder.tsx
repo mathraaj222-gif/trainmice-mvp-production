@@ -7,30 +7,30 @@ export interface ScheduleItemData {
   day_number: number;
   start_time: string;
   end_time: string;
-  module_title: string;
-  submodule_title: string | null;
+  module_title: string | string[]; // Can be string (backward compat) or array
+  submodule_title: string | string[] | null; // Can be string (backward compat) or array
   duration_minutes: number;
 }
 
 interface ScheduleBuilderProps {
-  scheduleItems: Array<ScheduleItemData & { id: string; submodules: string[] }>;
-  onChange: (items: Array<ScheduleItemData & { id: string; submodules: string[] }>) => void;
+  scheduleItems: Array<ScheduleItemData & { id: string; submodules: string[]; module_titles?: string[] }>;
+  onChange: (items: Array<ScheduleItemData & { id: string; submodules: string[]; module_titles?: string[] }>) => void;
   requiredDurationHours: number;
   durationUnit: 'days' | 'hours' | 'half_day';
 }
 
 // Updated session times
 const FULL_DAY_SESSIONS = [
-  { name: 'Morning', startTime: '09:00', endTime: '11:00' },
-  { name: 'Afternoon', startTime: '11:00', endTime: '14:00' },
-  { name: 'Evening', startTime: '14:00', endTime: '16:00' },
-  { name: 'End', startTime: '16:00', endTime: '18:00' },
+  { name: 'Session 1', startTime: '09:00', endTime: '11:00' },
+  { name: 'Session 2', startTime: '11:00', endTime: '14:00' },
+  { name: 'Session 3', startTime: '14:00', endTime: '16:00' },
+  { name: 'Session 4', startTime: '16:00', endTime: '18:00' },
 ];
 
 // Half day sessions (first 2 sessions)
 const HALF_DAY_SESSIONS = [
-  { name: 'Morning', startTime: '09:00', endTime: '11:00' },
-  { name: 'Afternoon', startTime: '11:00', endTime: '14:00' },
+  { name: 'Session 1', startTime: '09:00', endTime: '11:00' },
+  { name: 'Session 2', startTime: '11:00', endTime: '14:00' },
 ];
 
 // Hours sessions (1 or 2 sessions based on hours)
@@ -63,7 +63,7 @@ export function ScheduleBuilder({ scheduleItems, onChange, requiredDurationHours
 
   // Initialize schedule structure if empty
   const initializeSchedule = () => {
-    const newItems: Array<ScheduleItemData & { id: string; submodules: string[] }> = [];
+    const newItems: Array<ScheduleItemData & { id: string; submodules: string[]; module_titles?: string[] }> = [];
 
     for (let day = 1; day <= daysCount; day++) {
       sessions.forEach((session, sessionIndex) => {
@@ -75,7 +75,8 @@ export function ScheduleBuilder({ scheduleItems, onChange, requiredDurationHours
           day_number: day,
           start_time: session.startTime,
           end_time: session.endTime,
-          module_title: '',
+          module_title: '', // Keep for backward compatibility
+          module_titles: [], // New array format
           submodule_title: null,
           duration_minutes: durationMinutes,
           submodules: [],
@@ -95,12 +96,13 @@ export function ScheduleBuilder({ scheduleItems, onChange, requiredDurationHours
 
     if (!item) {
       const durationMinutes = 120; // Standardized 2 hours
-      const newItem: ScheduleItemData & { id: string; submodules: string[] } = {
+      const newItem: ScheduleItemData & { id: string; submodules: string[]; module_titles?: string[] } = {
         id: `day-${day}-session-${sessionIndex}`,
         day_number: day,
         start_time: session.startTime,
         end_time: session.endTime,
-        module_title: '',
+        module_title: '', // Keep for backward compatibility
+        module_titles: [], // New array format
         submodule_title: null,
         duration_minutes: durationMinutes,
         submodules: [],
@@ -190,7 +192,14 @@ export function ScheduleBuilder({ scheduleItems, onChange, requiredDurationHours
                         <Input
                           label="Module Title"
                           value={item.module_title || ''}
-                          onChange={(e) => updateItem(day, sessionIndex, { module_title: e.target.value })}
+                          onChange={(e) => {
+                            const moduleTitle = e.target.value;
+                            // Update both old format (for backward compatibility) and new array format
+                            updateItem(day, sessionIndex, { 
+                              module_title: moduleTitle,
+                              module_titles: moduleTitle ? [moduleTitle] : []
+                            });
+                          }}
                           placeholder={`Enter module title for ${session.name}`}
                         />
 
