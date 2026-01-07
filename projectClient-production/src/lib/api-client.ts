@@ -218,6 +218,20 @@ export class ApiClient {
     }
   }
 
+  /**
+   * Request password reset
+   */
+  async forgotPassword(email: string) {
+    return this.post<{ message: string }>('/auth/forgot-password', { email });
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, password: string) {
+    return this.post<{ message: string }>('/auth/reset-password', { token, password });
+  }
+
   // ============================================================================
   // COURSES METHODS
   // ============================================================================

@@ -15,6 +15,8 @@ import { EventOverlook } from './pages/EventOverlook';
 import { Notifications } from './pages/Notifications';
 import { Messages } from './pages/Messages';
 import { VerifyEmailSuccess } from './pages/VerifyEmailSuccess';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { NotFound } from './pages/NotFound';
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email-success" element={<VerifyEmailSuccess />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             path="/"

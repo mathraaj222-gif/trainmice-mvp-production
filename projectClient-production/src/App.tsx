@@ -9,6 +9,8 @@ import { ContactUs } from './pages/ContactUs';
 import { RequestCustomCourse } from './pages/RequestCustomCourse';
 import { VerifyEmailSuccess } from './pages/VerifyEmailSuccess';
 import { FeedbackForm } from './pages/FeedbackForm';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Header } from './components/Header';
 import { SignupModal } from './components/SignupModal';
 import { LoginModal } from './components/LoginModal';
@@ -46,6 +48,8 @@ function App() {
         <Route path="/request-custom-course" element={<RequestCustomCourse />} />
         <Route path="/verify-email-success" element={<VerifyEmailSuccess />} />
         <Route path="/feedback/:eventId" element={<FeedbackForm />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
       <SignupModal
         isOpen={isSignupOpen}

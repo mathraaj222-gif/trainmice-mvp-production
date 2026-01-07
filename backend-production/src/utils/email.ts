@@ -115,5 +115,116 @@ TrainMICE Team
   }
 }
 
+interface SendPasswordResetEmailParams {
+  email: string;
+  token: string;
+  role: 'CLIENT' | 'TRAINER';
+}
+
+export async function sendPasswordResetEmail({
+  email,
+  token,
+  role: _role,
+}: SendPasswordResetEmailParams): Promise<void> {
+  // Check if Resend is configured
+  if (!resend) {
+    console.warn(`⚠️  Email sending disabled: RESEND_API_KEY not configured`);
+    console.warn(`⚠️  Password reset email would have been sent to ${email}`);
+    console.warn(`⚠️  Password reset token: ${token}`);
+    return;
+  }
+
+  // Determine frontend URL based on role
+  const frontendUrl = _role === 'CLIENT'
+    ? process.env.FRONTEND_URL_CLIENT || 'http://localhost:5173'
+    : process.env.FRONTEND_URL_TRAINER || 'http://localhost:5174';
+
+  const resetUrl = `${frontendUrl}/reset-password?t=${token}`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0;">TrainMICE</h1>
+        </div>
+        
+        <div style="background:rgb(255, 255, 255); padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Password Reset Request</h2>
+          
+          <p>Hello,</p>
+          
+          <p>We received a request to reset your password for your TrainMICE account.</p>
+          
+          <p>Please click the button below to reset your password:</p>
+          
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+            <tr>
+              <td align="center">
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="background: #14b8a6; border-radius: 5px;">
+                      <a href="${resetUrl}" 
+                         style="display: block; padding: 15px 30px; text-decoration: none; 
+                                color: #ffd700; font-weight: bold; font-size: 16px; 
+                                border-radius: 5px; font-family: Arial, sans-serif;">
+                        Reset Password
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          
+          <p style="font-size: 12px; color: #999; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            This password reset link will expire in 1 hour.<br>
+            If you did not request a password reset, please ignore this email and your password will remain unchanged.
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const textContent = `
+Hello,
+
+We received a request to reset your password for your TrainMICE account.
+
+Please open this email in an HTML-capable email client and click the "Reset Password" button to reset your password.
+
+This password reset link will expire in 1 hour.
+
+If you did not request a password reset, please ignore this email and your password will remain unchanged.
+
+Best regards,
+TrainMICE Team
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `TrainMICE <${config.email.fromEmail}>`,
+      to: [email],
+      subject: 'Reset Your TrainMICE Password',
+      html: htmlContent,
+      text: textContent,
+    });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      return;
+    }
+
+    console.log('✅ Password reset email sent successfully:', data?.id);
+  } catch (error: any) {
+    console.error('Error sending password reset email (non-blocking):', error.message || error);
+  }
+}
+
 // Export resend client for potential future use
 export default resend;

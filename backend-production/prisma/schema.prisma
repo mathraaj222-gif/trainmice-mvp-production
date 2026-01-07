@@ -16,6 +16,8 @@ model User {
   emailVerified     Boolean        @default(false) @map("email_verified")
   verificationToken String?        @map("verification_token") @db.VarChar(255)
   tokenExpiry       DateTime?      @map("token_expiry")
+  passwordResetToken String?       @map("password_reset_token") @db.VarChar(255)
+  passwordResetExpiry DateTime?    @map("password_reset_expiry")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
   activityLogs      ActivityLog[]

@@ -133,6 +133,12 @@ export function LoginModal({ isOpen, onClose, onSwitchToSignup, onLoginSuccess }
             >
               Don't have an account? Sign up
             </button>
+            <a
+              href="/forgot-password"
+              className="text-sm text-teal-600 hover:text-teal-800"
+            >
+              Forgot password?
+            </a>
           </div>
 
           <button

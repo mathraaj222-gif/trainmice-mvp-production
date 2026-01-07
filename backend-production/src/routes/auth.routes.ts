@@ -6,7 +6,7 @@ import { generateToken } from '../utils/utils/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateTrainerId, generateAdminCode } from '../utils/utils/sequentialId';
 import { generateVerificationToken, getTokenExpiry, isTokenExpired } from '../utils/utils/verification';
-import { sendVerificationEmail } from '../utils/email';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
 import { isBlockedEmailDomain, isValidEmailFormat } from '../utils/utils/emailValidation';
 
 const router = express.Router();
@@ -509,6 +509,122 @@ router.post(
     } catch (error: any) {
       console.error('Resend verification error:', error);
       return res.status(500).json({ error: 'Failed to resend verification email', details: error.message });
+    }
+  }
+);
+
+// Forgot Password - Request password reset
+router.post(
+  '/forgot-password',
+  [body('email').isEmail().normalizeEmail()],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email } = req.body;
+
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({ 
+          message: 'If an account exists with this email, a password reset link has been sent.',
+        });
+      }
+
+      // Generate password reset token
+      const resetToken = generateVerificationToken();
+      const resetExpiry = new Date();
+      resetExpiry.setHours(resetExpiry.getHours() + 1); // 1 hour expiry
+
+      // Update user with reset token
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetToken: resetToken,
+          passwordResetExpiry: resetExpiry,
+        },
+      });
+
+      // Send password reset email
+      try {
+        await sendPasswordResetEmail({
+          email: user.email,
+          token: resetToken,
+          role: user.role as 'CLIENT' | 'TRAINER',
+        });
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Still return success to prevent information leakage
+      }
+
+      return res.json({ 
+        message: 'If an account exists with this email, a password reset link has been sent.',
+      });
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      return res.status(500).json({ error: 'Failed to process request', details: error.message });
+    }
+  }
+);
+
+// Reset Password - Set new password with token
+router.post(
+  '/reset-password',
+  [
+    body('token').notEmpty(),
+    body('password').isLength({ min: 8 }),
+  ],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { token, password } = req.body;
+
+      // Find user by reset token
+      const user = await prisma.user.findFirst({
+        where: {
+          passwordResetToken: token,
+        },
+      });
+
+      if (!user) {
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
+      }
+
+      // Check if token is expired
+      if (!user.passwordResetExpiry || isTokenExpired(user.passwordResetExpiry)) {
+        return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
+      }
+
+      // Hash new password
+      const passwordHash = await hashPassword(password);
+
+      // Update user password and clear reset token
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          passwordResetToken: null,
+          passwordResetExpiry: null,
+        },
+      });
+
+      return res.json({ 
+        message: 'Password has been reset successfully. You can now log in with your new password.',
+      });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      return res.status(500).json({ error: 'Failed to reset password', details: error.message });
     }
   }
 );

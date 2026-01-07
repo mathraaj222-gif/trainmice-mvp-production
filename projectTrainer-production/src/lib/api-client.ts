@@ -200,6 +200,20 @@ export class ApiClient {
     }
   }
 
+  /**
+   * Request password reset
+   */
+  async forgotPassword(email: string) {
+    return this.post<{ message: string }>('/auth/forgot-password', { email });
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, password: string) {
+    return this.post<{ message: string }>('/auth/reset-password', { token, password });
+  }
+
   // Courses (Trainer can create/update/delete their own)
   async getCourses(params?: { courseType?: string; status?: string }) {
     const response = await this.get<{ courses: any[] }>('/courses', params);
