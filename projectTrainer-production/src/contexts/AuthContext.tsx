@@ -1,10 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { auth, User as BackendUser } from '../lib/auth';
+import { apiClient } from '../lib/api-client';
 import { AuthUser } from '../types/database';
+
+type Session = { access_token: string };
 
 interface AuthContextType {
   user: AuthUser | null;
-  session: { access_token: string } | null;
+  session: Session | null;
   loading: boolean;
   signUp: (
     email: string,
@@ -51,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
-    const unsubscribe = auth.onAuthStateChange((backendUser) => {
+    const unsubscribe = auth.onAuthStateChange(async (backendUser) => {
       if (!isMounted) return;
       if (backendUser) {
         const mappedUser: AuthUser = {
@@ -61,7 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: (backendUser.role.toLowerCase() as 'trainer' | 'admin' | 'client') || 'trainer',
         };
         setUser(mappedUser);
-        setSession({ access_token: auth['getSessionToken' as any] ?? '' } as any);
+        
+        // Get the session with token from apiClient
+        const token = apiClient.getToken();
+        if (token) {
+          setSession({ access_token: token });
+        } else {
+          // If no token, try to get full session
+          const { session } = await auth.getSession();
+          setSession(session);
+        }
       } else {
         setUser(null);
         setSession(null);
@@ -74,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'trainer' | 'admin' | 'client', contactNumber?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, role: 'trainer' | 'admin' | 'client', _contactNumber?: string) => {
     try {
       if (role === 'trainer') {
         // Use trainer signup endpoint
@@ -109,8 +121,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await auth.signIn(email, password);
+      const { data, error } = await auth.signIn(email, password);
       if (error) throw new Error(error.message);
+      
+      // Update user and session state after successful login
+      if (data?.user && data?.session) {
+        const mappedUser: AuthUser = {
+          id: data.user.id,
+          email: data.user.email,
+          full_name: data.user.fullName || data.user.email,
+          role: (data.user.role.toLowerCase() as 'trainer' | 'admin' | 'client') || 'trainer',
+        };
+        setUser(mappedUser);
+        setSession(data.session);
+      }
+      
       return { error: null };
     } catch (error) {
       return { error: error as Error };
