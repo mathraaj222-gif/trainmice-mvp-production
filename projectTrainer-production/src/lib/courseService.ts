@@ -118,8 +118,34 @@ export async function updateCourse(courseId: string, courseData: Partial<CourseF
     // Map only provided fields
     if (courseData.title !== undefined) updatePayload.title = courseData.title;
     if (courseData.description !== undefined) updatePayload.description = courseData.description;
-    if (courseData.duration_hours !== undefined) updatePayload.durationHours = courseData.duration_hours;
-    if (courseData.duration_unit !== undefined) updatePayload.durationUnit = courseData.duration_unit;
+    
+    // Handle duration conversion - same logic as createCourse
+    if (courseData.duration_hours !== undefined || courseData.duration_unit !== undefined) {
+      const durationUnit = courseData.duration_unit;
+      const durationHours = courseData.duration_hours;
+      
+      if (durationHours !== undefined && durationUnit !== undefined) {
+        let storedDurationHours: number;
+        if (durationUnit === 'days') {
+          // For days, duration_hours contains the raw day count (e.g., 2 for 2 days)
+          storedDurationHours = durationHours;
+        } else if (durationUnit === 'half_day') {
+          // Half day is stored as 4.5 hours
+          storedDurationHours = 4.5;
+        } else {
+          // For hours, use the value as-is (raw hour count)
+          storedDurationHours = durationHours;
+        }
+        updatePayload.durationHours = storedDurationHours;
+      } else if (courseData.duration_hours !== undefined) {
+        // If only duration_hours is provided, use it as-is
+        updatePayload.durationHours = courseData.duration_hours;
+      }
+      
+      if (courseData.duration_unit !== undefined) {
+        updatePayload.durationUnit = courseData.duration_unit;
+      }
+    }
     if (courseData.course_type !== undefined) {
       // course_type is now an array
       if (Array.isArray(courseData.course_type)) {
@@ -166,19 +192,35 @@ export async function updateCourse(courseId: string, courseData: Partial<CourseF
     }
     
     // Handle end_date (trainers cannot set fixedDate - events created only by admin)
-    if (courseData.end_date !== undefined && courseData.end_date && courseData.end_date.trim() !== '') {
-      updatePayload.endDate = new Date(courseData.end_date);
-    } else if (courseData.end_date !== undefined && (!courseData.end_date || courseData.end_date.trim() === '')) {
-      updatePayload.endDate = null;
+    if (courseData.end_date !== undefined) {
+      if (courseData.end_date && courseData.end_date.trim() !== '') {
+        updatePayload.endDate = new Date(courseData.end_date);
+      } else {
+        updatePayload.endDate = null;
+      }
     }
     
     // Ensure fixedDate is always null for trainer updates
-    if (courseData.event_date !== undefined) {
-      updatePayload.fixedDate = null;
-    }
+    updatePayload.fixedDate = null;
+    
+    // Log the payload for debugging
+    console.log('Updating course with payload:', JSON.stringify(updatePayload, null, 2));
+    console.log('Course ID:', courseId);
+    console.log('Original courseData:', JSON.stringify(courseData, null, 2));
 
-    const result = await apiClient.put<{ course: any }>(`/courses/${courseId}`, updatePayload);
-    return result.course as Course;
+    try {
+      const result = await apiClient.put<{ course: any }>(`/courses/${courseId}`, updatePayload);
+      console.log('Course update response:', result);
+      if (!result || !result.course) {
+        throw new Error('Invalid response from server: course data missing');
+      }
+      return result.course as Course;
+    } catch (error: any) {
+      console.error('API call failed:', error);
+      console.error('Request URL:', `/courses/${courseId}`);
+      console.error('Request payload:', updatePayload);
+      throw error;
+    }
   } catch (error: any) {
     console.error('Error updating course:', error);
     throw new Error(error?.message || 'Failed to update course');

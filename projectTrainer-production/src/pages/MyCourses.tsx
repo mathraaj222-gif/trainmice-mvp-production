@@ -91,12 +91,21 @@ export function MyCourses() {
   const handleEdit = async (course: Course) => {
     setEditingCourse(course);
 
+    // Convert course_type and course_mode arrays to strings for form compatibility
+    // If it's an array, take the first value or join with comma, otherwise use as-is
+    const courseTypeValue = Array.isArray(course.course_type) 
+      ? (course.course_type.length > 0 ? course.course_type[0] : null)
+      : (course.course_type || null);
+    const courseModeValue = Array.isArray(course.course_mode) 
+      ? (course.course_mode.length > 0 ? course.course_mode[0] : null)
+      : (course.course_mode || null);
+
     setFormData({
       title: course.title,
       duration_hours: course.duration_hours,
       duration_unit: course.duration_unit,
-      course_type: course.course_type || null,
-      course_mode: course.course_mode || null,
+      course_type: courseTypeValue,
+      course_mode: courseModeValue,
       category: course.category || null,
       certificate: course.certificate,
       assessment: course.assessment,
