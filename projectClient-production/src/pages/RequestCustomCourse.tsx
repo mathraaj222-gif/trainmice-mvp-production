@@ -49,30 +49,64 @@ export function RequestCustomCourse() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    auth.getSession().then(({ user }) => {
+    const fetchClientData = async () => {
+      const { user } = await auth.getSession();
       setUser(user);
       setIsLoadingAuth(false);
       if (user) {
-        // Use user data directly
-        setCourseData((prev) => ({
-          ...prev,
-          contactPerson: user.fullName || user.email?.split('@')[0] || '',
-          email: user.email || '',
-        }));
+        try {
+          // Fetch client profile to get company information
+          const profileResponse = await apiClient.getClientProfile();
+          const client = profileResponse.client;
+          
+          // Pre-fill form with client data
+          setCourseData((prev) => ({
+            ...prev,
+            contactPerson: user.fullName || client?.userName || user.email?.split('@')[0] || '',
+            email: user.email || client?.companyEmail || '',
+            companyName: client?.companyName || '',
+          }));
+        } catch (error) {
+          console.error('Error fetching client profile:', error);
+          // Fallback to user data if profile fetch fails
+          setCourseData((prev) => ({
+            ...prev,
+            contactPerson: user.fullName || user.email?.split('@')[0] || '',
+            email: user.email || '',
+          }));
+        }
         setShowSignup(false);
       } else {
         setShowSignup(true);
       }
-    });
+    };
 
-    const unsubscribe = auth.onAuthStateChange((user) => {
+    fetchClientData();
+
+    const unsubscribe = auth.onAuthStateChange(async (user) => {
       setUser(user);
       if (user) {
-        setCourseData((prev) => ({
-          ...prev,
-          contactPerson: user.fullName || user.email?.split('@')[0] || '',
-          email: user.email || '',
-        }));
+        try {
+          // Fetch client profile to get company information
+          const profileResponse = await apiClient.getClientProfile();
+          const client = profileResponse.client;
+          
+          // Pre-fill form with client data
+          setCourseData((prev) => ({
+            ...prev,
+            contactPerson: user.fullName || client?.userName || user.email?.split('@')[0] || '',
+            email: user.email || client?.companyEmail || '',
+            companyName: client?.companyName || '',
+          }));
+        } catch (error) {
+          console.error('Error fetching client profile:', error);
+          // Fallback to user data if profile fetch fails
+          setCourseData((prev) => ({
+            ...prev,
+            contactPerson: user.fullName || user.email?.split('@')[0] || '',
+            email: user.email || '',
+          }));
+        }
         setShowSignup(false);
       }
     });

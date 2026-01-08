@@ -16,6 +16,11 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin, onSignupSuccess 
     contactNumber: '',
     password: '',
     confirmPassword: '',
+    position: '',
+    companyName: '',
+    companyAddress: '',
+    city: '',
+    state: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -51,6 +56,26 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin, onSignupSuccess 
       newErrors.contactNumber = 'Please enter a valid contact number';
     }
 
+    if (!formData.position) {
+      newErrors.position = 'Position is required';
+    }
+
+    if (!formData.companyName) {
+      newErrors.companyName = 'Company name is required';
+    }
+
+    if (!formData.companyAddress) {
+      newErrors.companyAddress = 'Company address is required';
+    }
+
+    if (!formData.city) {
+      newErrors.city = 'City is required';
+    }
+
+    if (!formData.state) {
+      newErrors.state = 'State is required';
+    }
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
@@ -83,6 +108,11 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin, onSignupSuccess 
         fullName: formData.userName,
         userName: formData.userName,
         contactNumber: formData.contactNumber,
+        position: formData.position,
+        companyName: formData.companyName,
+        companyAddress: formData.companyAddress,
+        city: formData.city,
+        state: formData.state,
         role: 'CLIENT',
       });
 
@@ -114,6 +144,11 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin, onSignupSuccess 
             contactNumber: '',
             password: '',
             confirmPassword: '',
+            position: '',
+            companyName: '',
+            companyAddress: '',
+            city: '',
+            state: '',
           });
           setErrors({});
           if (onSignupSuccess && !data.requiresVerification) {
@@ -213,6 +248,123 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin, onSignupSuccess 
             {errors.contactNumber && (
               <p className="text-red-500 text-sm mt-1">{errors.contactNumber}</p>
             )}
+          </div>
+
+          <div>
+            <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
+              Position <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="position"
+              required
+              value={formData.position}
+              onChange={(e) => {
+                setFormData({ ...formData, position: e.target.value });
+                setErrors({ ...errors, position: '' });
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.position ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="e.g., Manager, Director, HR Executive"
+            />
+            {errors.position && (
+              <p className="text-red-500 text-sm mt-1">{errors.position}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+              Company Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="companyName"
+              required
+              value={formData.companyName}
+              onChange={(e) => {
+                setFormData({ ...formData, companyName: e.target.value });
+                setErrors({ ...errors, companyName: '' });
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.companyName ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Your Company Sdn Bhd"
+            />
+            {errors.companyName && (
+              <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="companyAddress" className="block text-sm font-medium text-gray-700 mb-1">
+              Company Address <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="companyAddress"
+              required
+              value={formData.companyAddress}
+              onChange={(e) => {
+                setFormData({ ...formData, companyAddress: e.target.value });
+                setErrors({ ...errors, companyAddress: '' });
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.companyAddress ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter full company address"
+              rows={3}
+            />
+            {errors.companyAddress && (
+              <p className="text-red-500 text-sm mt-1">{errors.companyAddress}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                City <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="city"
+                required
+                value={formData.city}
+                onChange={(e) => {
+                  setFormData({ ...formData, city: e.target.value });
+                  setErrors({ ...errors, city: '' });
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.city ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g., Kuala Lumpur"
+              />
+              {errors.city && (
+                <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                State <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="state"
+                required
+                value={formData.state}
+                onChange={(e) => {
+                  setFormData({ ...formData, state: e.target.value });
+                  setErrors({ ...errors, state: '' });
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.state ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g., Selangor"
+              />
+              {errors.state && (
+                <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+              )}
+            </div>
           </div>
 
           <div>

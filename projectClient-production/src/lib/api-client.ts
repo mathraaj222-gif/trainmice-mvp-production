@@ -154,6 +154,11 @@ export class ApiClient {
     fullName?: string;
     userName?: string;
     contactNumber?: string;
+    position?: string;
+    companyName?: string;
+    companyAddress?: string;
+    city?: string;
+    state?: string;
   }) {
     return this.post<{ message: string; user: any; requiresVerification: boolean }>('/auth/client/signup', data);
   }
@@ -163,6 +168,13 @@ export class ApiClient {
    */
   async resendVerification(email: string) {
     return this.post<{ message: string }>('/auth/resend-verification', { email });
+  }
+
+  /**
+   * Get current client profile
+   */
+  async getClientProfile() {
+    return this.get<{ client: any }>('/auth/client/profile');
   }
 
   /**

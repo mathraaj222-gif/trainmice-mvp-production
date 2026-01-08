@@ -27,7 +27,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, fullName, role, contactNumber, userName } = req.body;
+      const { email, password, fullName, role, contactNumber, userName, position, companyName, companyAddress, city, state } = req.body;
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
@@ -68,6 +68,11 @@ router.post(
             companyEmail: email,
             userName: userName || fullName || email.split('@')[0],
             contactNumber: contactNumber || '',
+            position: position || null,
+            companyName: companyName || null,
+            companyAddress: companyAddress || null,
+            city: city || null,
+            state: state || null,
           },
         });
       } else if (role === 'TRAINER') {
@@ -185,6 +190,11 @@ router.post(
     body('fullName').optional().trim(),
     body('userName').optional().trim(),
     body('contactNumber').optional().trim(),
+    body('position').optional().trim(),
+    body('companyName').optional().trim(),
+    body('companyAddress').optional().trim(),
+    body('city').optional().trim(),
+    body('state').optional().trim(),
   ],
   async (req: Request, res: Response) => {
     try {
@@ -193,7 +203,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, fullName, contactNumber, userName } = req.body;
+      const { email, password, fullName, contactNumber, userName, position, companyName, companyAddress, city, state } = req.body;
 
       // Validate email format
       if (!isValidEmailFormat(email)) {
@@ -252,6 +262,11 @@ router.post(
           companyEmail: email,
           userName: userName || fullName || email.split('@')[0],
           contactNumber: contactNumber || '',
+          position: position || null,
+          companyName: companyName || null,
+          companyAddress: companyAddress || null,
+          city: city || null,
+          state: state || null,
         },
       });
 
@@ -654,6 +669,42 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
     return res.status(500).json({ error: 'Failed to get user', details: error.message });
   }
 });
+
+// Get current client profile (authenticated client only)
+router.get(
+  '/client/profile',
+  authenticate,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== 'CLIENT') {
+        return res.status(403).json({ error: 'Access denied. Client access only.' });
+      }
+
+      const client = await prisma.client.findUnique({
+        where: { id: req.user!.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              fullName: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      if (!client) {
+        return res.status(404).json({ error: 'Client profile not found' });
+      }
+
+      return res.json({ client });
+    } catch (error: any) {
+      console.error('Get client profile error:', error);
+      return res.status(500).json({ error: 'Failed to fetch client profile', details: error.message });
+    }
+  }
+);
 
 export default router;
 

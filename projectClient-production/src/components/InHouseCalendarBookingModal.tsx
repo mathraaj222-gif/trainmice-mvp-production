@@ -63,13 +63,33 @@ export function InHouseCalendarBookingModal({
     try {
       const { user } = await auth.getSession();
       if (user) {
-        const userName = user.fullName || user.email?.split('@')[0] || '';
-        const userEmail = user.email || '';
-        setFormData(prev => ({
-          ...prev,
-          userName,
-          userEmail,
-        }));
+        try {
+          // Fetch client profile to get company information
+          const profileResponse = await apiClient.getClientProfile();
+          const client = profileResponse.client;
+          
+          const userName = user.fullName || client?.userName || user.email?.split('@')[0] || '';
+          const userEmail = user.email || client?.companyEmail || '';
+          setFormData(prev => ({
+            ...prev,
+            userName,
+            userEmail,
+            companyName: client?.companyName || '',
+            address: client?.companyAddress || '',
+            city: client?.city || '',
+            state: client?.state || '',
+          }));
+        } catch (profileError) {
+          console.error('Error fetching client profile:', profileError);
+          // Fallback to user data if profile fetch fails
+          const userName = user.fullName || user.email?.split('@')[0] || '';
+          const userEmail = user.email || '';
+          setFormData(prev => ({
+            ...prev,
+            userName,
+            userEmail,
+          }));
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);

@@ -36,6 +36,11 @@ model Client {
   companyEmail         String                @unique @map("company_email")
   userName             String                @map("user_name")
   contactNumber        String                @map("contact_number")
+  companyName          String?               @map("company_name")
+  companyAddress       String?              @map("company_address") @db.Text
+  city                 String?               @map("city")
+  state                String?               @map("state")
+  position             String?               @map("position")
   createdAt            DateTime              @default(now()) @map("created_at")
   bookingRequests      BookingRequest[]
   user                 User                  @relation(fields: [id], references: [id], onDelete: Cascade)

@@ -70,6 +70,11 @@ class AuthService {
     role?: 'CLIENT' | 'TRAINER' | 'ADMIN';
     contactNumber?: string;
     userName?: string;
+    position?: string;
+    companyName?: string;
+    companyAddress?: string;
+    city?: string;
+    state?: string;
   }) {
     try {
       // Use client signup endpoint for CLIENT role
@@ -80,6 +85,11 @@ class AuthService {
           fullName: data.fullName || data.userName,
           userName: data.userName,
           contactNumber: data.contactNumber,
+          position: data.position,
+          companyName: data.companyName,
+          companyAddress: data.companyAddress,
+          city: data.city,
+          state: data.state,
         });
 
         // Client signup requires verification - no token yet

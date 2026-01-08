@@ -43,13 +43,31 @@ export function AdvancedBookingModal({
       setIsCheckingAuth(false);
 
       if (user) {
-        const userName = user.fullName || user.email?.split('@')[0] || '';
-        const userEmail = user.email || '';
-        setFormData(prev => ({
-          ...prev,
-          userName,
-          userEmail,
-        }));
+        try {
+          // Fetch client profile to get company information
+          const profileResponse = await apiClient.getClientProfile();
+          const client = profileResponse.client;
+          
+          const userName = user.fullName || client?.userName || user.email?.split('@')[0] || '';
+          const userEmail = user.email || client?.companyEmail || '';
+          setFormData(prev => ({
+            ...prev,
+            userName,
+            userEmail,
+            companyName: client?.companyName || '',
+            address: client?.companyAddress || '',
+          }));
+        } catch (error) {
+          console.error('Error fetching client profile:', error);
+          // Fallback to user data if profile fetch fails
+          const userName = user.fullName || user.email?.split('@')[0] || '';
+          const userEmail = user.email || '';
+          setFormData(prev => ({
+            ...prev,
+            userName,
+            userEmail,
+          }));
+        }
       }
     };
 
