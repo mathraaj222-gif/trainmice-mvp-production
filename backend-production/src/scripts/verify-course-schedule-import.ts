@@ -68,12 +68,8 @@ async function verifyCourseScheduleImport() {
     }
 
     // Verify array format
+    // Since moduleTitle is a required Json field, we can just find any record
     const arrayFormatCheck = await prisma.courseSchedule.findFirst({
-      where: {
-        moduleTitle: {
-          not: null,
-        },
-      },
       select: {
         moduleTitle: true,
         submoduleTitle: true,
