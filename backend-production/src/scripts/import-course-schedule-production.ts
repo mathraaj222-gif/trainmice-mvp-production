@@ -222,22 +222,43 @@ async function importCourseSchedule() {
         // Parse created_at
         const createdAt = parseDate(record.created_at);
 
-        // Create schedule record
-        await prisma.courseSchedule.create({
-          data: {
-            id: record.id.trim(),
-            courseId: record.course_id.trim(),
-            dayNumber,
-            startTime,
-            endTime,
-            moduleTitle: moduleTitleArray, // JSON array
-            submoduleTitle: submoduleTitleArray.length > 0 ? submoduleTitleArray : undefined, // JSON array or undefined
-            durationMinutes,
-            createdAt,
-          },
-        });
+        // Create one row per module (new structure: one module per row)
+        for (let moduleIndex = 0; moduleIndex < moduleTitleArray.length; moduleIndex++) {
+          const moduleTitle = moduleTitleArray[moduleIndex];
+          
+          // Generate unique ID for each module row
+          const moduleId = moduleIndex === 0 
+            ? record.id.trim() 
+            : `${record.id.trim()}_module_${moduleIndex}`;
 
-        successCount++;
+          // Check if this specific module row already exists
+          const existingModule = await prisma.courseSchedule.findUnique({
+            where: { id: moduleId },
+          });
+
+          if (existingModule) {
+            console.log(`⏭️  Skipping module ${moduleIndex} of record ${record.id}: Already exists`);
+            continue;
+          }
+
+          // Create schedule record - one per module
+          await prisma.courseSchedule.create({
+            data: {
+              id: moduleId,
+              courseId: record.course_id.trim(),
+              dayNumber,
+              startTime,
+              endTime,
+              moduleTitle: moduleTitle, // String (one module per row)
+              submoduleTitle: submoduleTitleArray.length > 0 ? submoduleTitleArray : undefined, // JSON array or undefined
+              durationMinutes,
+              createdAt,
+            },
+          });
+
+          successCount++;
+        }
+
         if (successCount % 100 === 0) {
           console.log(`✅ Imported ${successCount} schedule records...`);
         }
