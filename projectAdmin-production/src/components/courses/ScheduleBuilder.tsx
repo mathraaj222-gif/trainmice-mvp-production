@@ -98,17 +98,16 @@ export function ScheduleBuilder({ scheduleItems, onChange, requiredDurationHours
       const session = sessionMap.get(key);
       if (session) {
         // moduleTitle is now a string (one module per row)
+        // Include all modules, even with empty titles (for newly added modules)
         const moduleTitle = typeof item.module_title === 'string' ? item.module_title : '';
-        if (moduleTitle) {
-          // Get submodules from item
-          const submodules = Array.isArray(item.submodules) ? item.submodules : [];
-          
-          session.modules.push({
-            id: item.id || `module-${Date.now()}-${Math.random()}`,
-            moduleTitle,
-            submodules,
-          });
-        }
+        // Get submodules from item
+        const submodules = Array.isArray(item.submodules) ? item.submodules : [];
+        
+        session.modules.push({
+          id: item.id || `module-${Date.now()}-${Math.random()}`,
+          moduleTitle,
+          submodules,
+        });
       }
     });
 
