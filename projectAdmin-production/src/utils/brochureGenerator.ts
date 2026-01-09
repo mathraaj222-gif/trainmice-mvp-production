@@ -189,13 +189,13 @@ export const generateCourseBrochure = async (course: CourseData) => {
     'VIRTUAL': 'Virtual',
   };
 
-  // Course title - at the top with proper margin
+  // Course title - lowered position
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(28);
   doc.setFont('helvetica', 'bold');
   const titleMaxWidth = contentWidth;
   const titleLines = doc.splitTextToSize(course.title, titleMaxWidth);
-  const titleY = 50;
+  const titleY = 80; // Lowered from 50 to 80
   
   // Center or left-align title
   titleLines.forEach((line: string, index: number) => {
@@ -203,7 +203,7 @@ export const generateCourseBrochure = async (course: CourseData) => {
   });
 
   // Course details below title
-  let yPos = titleY + (titleLines.length * 10) + 20;
+  let yPos = titleY + (titleLines.length * 10) + 25;
   doc.setFontSize(13);
   doc.setFont('helvetica', 'normal');
 
@@ -213,9 +213,9 @@ export const generateCourseBrochure = async (course: CourseData) => {
   doc.setFont('helvetica', 'normal');
   const modeText = courseTypeMap[course.courseType || 'IN_HOUSE'] || course.courseType || 'In-House';
   doc.text(modeText, margin + 50, yPos);
-  yPos += 10;
+  yPos += 12;
 
-  // Date
+  // Date - on front page
   doc.setFont('helvetica', 'bold');
   doc.text('Date: ', margin, yPos);
   doc.setFont('helvetica', 'normal');
@@ -223,9 +223,9 @@ export const generateCourseBrochure = async (course: CourseData) => {
   dateLines.forEach((line: string, index: number) => {
     doc.text(line, margin + 50, yPos + (index * 6));
   });
-  yPos += Math.max(dateLines.length * 6, 10);
+  yPos += Math.max(dateLines.length * 6, 12);
 
-  // Venue
+  // Venue - on front page
   doc.setFont('helvetica', 'bold');
   doc.text('Venue: ', margin, yPos);
   doc.setFont('helvetica', 'normal');
