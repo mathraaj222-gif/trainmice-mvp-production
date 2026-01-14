@@ -78,5 +78,14 @@ export const useAuth = () => {
     }
   };
 
-  return { user, loading, signIn, signUp, signOut };
+  const forgotPassword = async (email: string) => {
+    try {
+      const response = await apiClient.forgotPassword(email);
+      return { data: response, error: null };
+    } catch (error: any) {
+      return { data: null, error: { message: error.message || 'Failed to send password reset email' } };
+    }
+  };
+
+  return { user, loading, signIn, signUp, signOut, forgotPassword };
 };

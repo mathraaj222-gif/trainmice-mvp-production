@@ -163,6 +163,12 @@ export class ApiClient {
     return this.get<{ user: any }>('/auth/me');
   }
 
+  async forgotPassword(email: string) {
+    return this.post<{ message: string }>('/auth/forgot-password', {
+      email,
+    });
+  }
+
   // ============================================================================
   // ADMIN PROFILE
   // ============================================================================

@@ -118,7 +118,7 @@ TrainMICE Team
 interface SendPasswordResetEmailParams {
   email: string;
   token: string;
-  role: 'CLIENT' | 'TRAINER';
+  role: 'CLIENT' | 'TRAINER' | 'ADMIN';
 }
 
 export async function sendPasswordResetEmail({
@@ -135,9 +135,14 @@ export async function sendPasswordResetEmail({
   }
 
   // Determine frontend URL based on role
-  const frontendUrl = _role === 'CLIENT'
-    ? process.env.FRONTEND_URL_CLIENT || 'http://localhost:5173'
-    : process.env.FRONTEND_URL_TRAINER || 'http://localhost:5174';
+  let frontendUrl: string;
+  if (_role === 'CLIENT') {
+    frontendUrl = process.env.FRONTEND_URL_CLIENT || 'http://localhost:5173';
+  } else if (_role === 'ADMIN') {
+    frontendUrl = process.env.FRONTEND_URL_ADMIN || 'http://localhost:5175';
+  } else {
+    frontendUrl = process.env.FRONTEND_URL_TRAINER || 'http://localhost:5174';
+  }
 
   const resetUrl = `${frontendUrl}/reset-password?t=${token}`;
 
@@ -223,6 +228,120 @@ TrainMICE Team
     console.log('✅ Password reset email sent successfully:', data?.id);
   } catch (error: any) {
     console.error('Error sending password reset email (non-blocking):', error.message || error);
+  }
+}
+
+interface SendAdminWelcomeEmailParams {
+  email: string;
+  fullName?: string;
+  loginUrl: string;
+}
+
+export async function sendAdminWelcomeEmail({
+  email,
+  fullName,
+  loginUrl,
+}: SendAdminWelcomeEmailParams): Promise<void> {
+  // Check if Resend is configured
+  if (!resend) {
+    console.warn(`⚠️  Email sending disabled: RESEND_API_KEY not configured`);
+    console.warn(`⚠️  Admin welcome email would have been sent to ${email}`);
+    console.warn(`⚠️  Login URL: ${loginUrl}`);
+    return;
+  }
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to TrainMICE Admin</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0;">TrainMICE</h1>
+        </div>
+        
+        <div style="background:rgb(255, 255, 255); padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Welcome to TrainMICE Admin Dashboard!</h2>
+          
+          <p>Hello ${fullName || 'there'},</p>
+          
+          <p>Your admin account has been successfully created. You can now access the TrainMICE Admin Dashboard to manage the training platform.</p>
+          
+          <p>Please click the button below to log in to your admin account:</p>
+          
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+            <tr>
+              <td align="center">
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="background: #14b8a6; border-radius: 5px;">
+                      <a href="${loginUrl}" 
+                         style="display: block; padding: 15px 30px; text-decoration: none; 
+                                color: #ffd700; font-weight: bold; font-size: 16px; 
+                                border-radius: 5px; font-family: Arial, sans-serif;">
+                        Access Admin Dashboard
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          
+          <p style="font-size: 14px; color: #666; margin-top: 20px;">
+            <strong>Your login credentials:</strong><br>
+            Email: ${email}<br>
+            (Use the password you set during registration)
+          </p>
+          
+          <p style="font-size: 12px; color: #999; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            If you did not create this account, please contact support immediately.
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const textContent = `
+Welcome to TrainMICE Admin Dashboard!
+
+Hello ${fullName || 'there'},
+
+Your admin account has been successfully created. You can now access the TrainMICE Admin Dashboard to manage the training platform.
+
+Please use the following link to log in to your admin account:
+${loginUrl}
+
+Your login credentials:
+Email: ${email}
+(Use the password you set during registration)
+
+If you did not create this account, please contact support immediately.
+
+Best regards,
+TrainMICE Team
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `TrainMICE <${config.email.fromEmail}>`,
+      to: [email],
+      subject: 'Welcome to TrainMICE Admin Dashboard',
+      html: htmlContent,
+      text: textContent,
+    });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      return;
+    }
+
+    console.log('✅ Admin welcome email sent successfully:', data?.id);
+  } catch (error: any) {
+    console.error('Error sending admin welcome email (non-blocking):', error.message || error);
   }
 }
 

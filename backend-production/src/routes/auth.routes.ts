@@ -6,7 +6,7 @@ import { generateToken } from '../utils/utils/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateTrainerId, generateAdminCode } from '../utils/utils/sequentialId';
 import { generateVerificationToken, getTokenExpiry, isTokenExpired } from '../utils/utils/verification';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
+import { sendVerificationEmail, sendPasswordResetEmail, sendAdminWelcomeEmail } from '../utils/email';
 import { isBlockedEmailDomain, isValidEmailFormat } from '../utils/utils/emailValidation';
 
 const router = express.Router();
@@ -28,6 +28,16 @@ router.post(
       }
 
       const { email, password, fullName, role, contactNumber, userName, position, companyName, companyAddress, city, state } = req.body;
+
+      // Validate admin email domain - only klgreens.com allowed
+      if (role === 'ADMIN') {
+        const emailDomain = email.split('@')[1]?.toLowerCase();
+        if (emailDomain !== 'klgreens.com') {
+          return res.status(400).json({ 
+            error: 'Only email addresses from klgreens.com domain can sign up as Admin' 
+          });
+        }
+      }
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
@@ -103,6 +113,22 @@ router.post(
         email: user.email,
         role: user.role,
       });
+
+      // Send welcome email for admin accounts
+      if (role === 'ADMIN') {
+        try {
+          const adminFrontendUrl = process.env.FRONTEND_URL_ADMIN || 'http://localhost:5175';
+          const loginUrl = `${adminFrontendUrl}/`;
+          await sendAdminWelcomeEmail({
+            email: user.email,
+            fullName: user.fullName || undefined,
+            loginUrl,
+          });
+        } catch (emailError) {
+          console.error('Failed to send admin welcome email:', emailError);
+          // Don't fail registration if email fails
+        }
+      }
 
       return res.status(201).json({
         message: 'User registered successfully',
@@ -572,7 +598,7 @@ router.post(
         await sendPasswordResetEmail({
           email: user.email,
           token: resetToken,
-          role: user.role as 'CLIENT' | 'TRAINER',
+          role: user.role as 'CLIENT' | 'TRAINER' | 'ADMIN',
         });
       } catch (emailError) {
         console.error('Failed to send password reset email:', emailError);

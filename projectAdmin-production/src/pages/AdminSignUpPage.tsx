@@ -40,6 +40,13 @@ export const AdminSignUpPage: React.FC = () => {
       return false;
     }
 
+    // Validate that email is from klgreens.com domain only
+    const emailDomain = formData.email.split('@')[1]?.toLowerCase();
+    if (emailDomain !== 'klgreens.com') {
+      setError('Only email addresses from klgreens.com domain can sign up as Admin');
+      return false;
+    }
+
     return true;
   };
 
@@ -125,8 +132,11 @@ export const AdminSignUpPage: React.FC = () => {
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 required
-                placeholder="admin@trainmice.com"
+                placeholder="admin@klgreens.com"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Only email addresses from klgreens.com domain are allowed
+              </p>
 
               <Input
                 label="Password"
