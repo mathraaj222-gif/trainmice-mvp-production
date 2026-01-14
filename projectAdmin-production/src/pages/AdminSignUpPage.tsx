@@ -93,7 +93,7 @@ export const AdminSignUpPage: React.FC = () => {
     <div 
       className="min-h-screen flex items-center justify-center p-4 relative"
       style={{
-        backgroundImage: 'url(/tropical-green-leaves-background.jpg)',
+        backgroundImage: 'url(/green on top.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -105,7 +105,7 @@ export const AdminSignUpPage: React.FC = () => {
           <img
             src="/TrainmiceTwinleaf.png"
             alt="Trainmice"
-            className="h-48 mx-auto mb-6"
+            className="h-48 w-auto mx-auto mb-6 object-contain"
           />
           <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Create Admin Account</h1>
           <p className="text-white drop-shadow-md">Set up your administrator credentials</p>

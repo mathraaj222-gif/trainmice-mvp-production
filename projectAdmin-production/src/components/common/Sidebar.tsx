@@ -33,12 +33,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, onLog
   ];
 
   return (
-    <div className="w-64 bg-gradient-to-b from-green-600 to-teal-600 text-white h-screen fixed left-0 top-0 flex flex-col">
-      <div className="p-6 border-b border-green-500 flex items-center justify-center">
+    <div className="w-64 bg-gradient-to-b from-white to-green-600 text-gray-800 h-screen fixed left-0 top-0 flex flex-col">
+      <div className="p-6 border-b border-green-200 flex items-center justify-center">
         <img
           src="/TrainmiceTwinleaf.png"
           alt="Trainmice"
-          className="h-32 w-auto"
+          className="h-32 w-auto object-contain"
         />
       </div>
 
@@ -52,8 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, onLog
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-white text-teal-600'
-                  : 'text-white hover:bg-green-500'
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-700 hover:bg-green-100'
               }`}
             >
               <Icon size={20} />
@@ -63,10 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, onLog
         })}
       </nav>
 
-      <div className="p-4 border-t border-green-500">
+      <div className="p-4 border-t border-green-200">
         <button
           onClick={onLogout}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white hover:bg-red-500 transition-colors"
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600 transition-colors"
         >
           <LogOut size={20} />
           <span className="font-medium">Logout</span>
