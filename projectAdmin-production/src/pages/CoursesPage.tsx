@@ -32,20 +32,9 @@ export const CoursesPage: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch courses based on active tab
-      const params: any = {};
-      if (activeTab === 'pending') {
-        params.status = 'PENDING_APPROVAL';
-      } else if (activeTab === 'approved') {
-        params.status = 'APPROVED';
-      } else if (activeTab === 'denied') {
-        // For denied tab, fetch DENIED courses
-        params.status = 'DENIED';
-      }
-      // For 'all' tab, fetch all courses without status filter
-
+      // Always fetch ALL courses first, then apply client-side filtering
       const [coursesResponse, trainersResponse] = await Promise.all([
-        apiClient.getAdminCourses(params),
+        apiClient.getAdminCourses({}),
         apiClient.getTrainers(),
       ]);
 
@@ -304,7 +293,13 @@ export const CoursesPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Courses</h1>
           <p className="text-gray-600 mt-1">
-            {courses.length} {filterWithoutTrainer ? 'courses without trainer' : activeTab === 'pending' ? 'pending approval' : activeTab === 'approved' ? 'approved' : activeTab === 'denied' ? 'denied' : 'total'} courses
+            {loading ? (
+              'Loading...'
+            ) : (
+              <>
+                {courses.length} {filterWithoutTrainer ? 'courses without trainer' : activeTab === 'pending' ? 'pending approval' : activeTab === 'approved' ? 'approved' : activeTab === 'denied' ? 'denied' : 'total'} courses
+              </>
+            )}
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
@@ -360,16 +355,19 @@ export const CoursesPage: React.FC = () => {
       </div>
 
       {/* Additional Filters */}
-      <div className="mb-6 flex items-center gap-4">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={filterWithoutTrainer}
-            onChange={(e) => setFilterWithoutTrainer(e.target.checked)}
-            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-          />
-          <span className="text-sm font-medium text-gray-700">Without Trainer</span>
-        </label>
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-semibold text-gray-700">Filters:</span>
+          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-3 py-2 rounded transition-colors">
+            <input
+              type="checkbox"
+              checked={filterWithoutTrainer}
+              onChange={(e) => setFilterWithoutTrainer(e.target.checked)}
+              className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500 focus:ring-2"
+            />
+            <span className="text-sm font-medium text-gray-700">Without Trainer</span>
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
