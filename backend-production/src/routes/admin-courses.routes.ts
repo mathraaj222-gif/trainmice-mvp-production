@@ -790,7 +790,8 @@ router.put('/:id/assign-trainer', async (req: AuthRequest, res: Response) => {
 router.post(
   '/:id/create-event',
   [
-    body('availabilityId').notEmpty().withMessage('Availability ID is required'),
+    body('availabilityIds').isArray().withMessage('Availability IDs must be an array'),
+    body('availabilityIds.*').notEmpty().withMessage('Each availability ID is required'),
     body('courseType').isIn(['IN_HOUSE', 'PUBLIC']).withMessage('Course type must be IN_HOUSE or PUBLIC'),
     body('courseMode').isIn(['PHYSICAL', 'ONLINE', 'HYBRID']).withMessage('Course mode must be PHYSICAL, ONLINE, or HYBRID'),
   ],
@@ -802,7 +803,11 @@ router.post(
       }
 
       const courseId = req.params.id;
-      const { availabilityId, courseType, courseMode, price, venue, city, state } = req.body;
+      const { availabilityIds, courseType, courseMode, price, venue, city, state } = req.body;
+      
+      if (!Array.isArray(availabilityIds) || availabilityIds.length === 0) {
+        return res.status(400).json({ error: 'At least one availability ID is required' });
+      }
 
       // Get the course
       const course = await prisma.course.findUnique({
@@ -830,24 +835,31 @@ router.post(
         return res.status(400).json({ error: 'Course must have a trainer assigned' });
       }
 
-      // Fetch the availability to get the event date
-      const availability = await prisma.trainerAvailability.findUnique({
-        where: { id: availabilityId },
+      // Fetch all availability records to get the event dates
+      const availabilities = await prisma.trainerAvailability.findMany({
+        where: { id: { in: availabilityIds } },
+        orderBy: { date: 'asc' },
       });
 
-      if (!availability) {
-        return res.status(404).json({ error: 'Trainer availability not found' });
+      if (availabilities.length !== availabilityIds.length) {
+        return res.status(404).json({ error: 'One or more availability records not found' });
       }
 
-      if (availability.trainerId !== trainerId) {
-        return res.status(400).json({ error: 'Availability does not belong to the assigned trainer' });
+      // Validate all availabilities belong to the trainer and are available
+      for (const availability of availabilities) {
+        if (availability.trainerId !== trainerId) {
+          return res.status(400).json({ error: 'One or more availability records do not belong to the assigned trainer' });
+        }
+        if (availability.status !== 'AVAILABLE') {
+          return res.status(400).json({ error: 'One or more selected dates are not available' });
+        }
       }
 
-      if (availability.status !== 'AVAILABLE') {
-        return res.status(400).json({ error: 'Selected date is not available' });
-      }
-
-      const eventDate = new Date(availability.date);
+      // Use the first date as the event date (primary date)
+      const eventDate = new Date(availabilities[0].date);
+      
+      // Calculate end date from the last selected date
+      const lastDate = new Date(availabilities[availabilities.length - 1].date);
 
       // Check if event already exists for this course and date
       const existingEvent = await prisma.event.findFirst({
@@ -861,31 +873,12 @@ router.post(
         return res.status(400).json({ error: 'Event already exists for this course and date' });
       }
 
-      // Calculate number of days to block based on course duration
-      const calculateDaysToBlock = (durationHours: number | null, durationUnit: string | null): number => {
-        if (!durationHours || durationHours <= 0) return 1; // Default to 1 day if no duration
-        
-        const unit = (durationUnit || 'hours').toLowerCase();
-        
-        if (unit === 'days') {
-          return Math.ceil(durationHours); // If already in days, use as-is
-        } else if (unit === 'half_day') {
-          return Math.ceil(durationHours * 0.5); // Half day = 0.5 days
-        } else {
-          // Default: hours - assume 8 hours per day
-          return Math.ceil(durationHours / 8); // Convert hours to days (8 hours = 1 day)
-        }
-      };
-
-      const daysToBlock = calculateDaysToBlock(course.durationHours, course.durationUnit);
-
       // Generate event code for consistency
       const eventCode = `EVT-${Date.now().toString(36).toUpperCase()}`;
 
-      // Calculate end date based on duration
+      // Use first date as start date and last date as end date
       const startDate = eventDate;
-      const endDate = new Date(eventDate);
-      endDate.setDate(endDate.getDate() + (daysToBlock - 1)); // Subtract 1 because start date counts as day 1
+      const endDate = availabilities.length > 1 ? lastDate : null;
 
       // Create event with single courseType and courseMode (not arrays)
       // Standardized: Always set status to ACTIVE, generate event code, set createdBy to current admin
@@ -913,7 +906,7 @@ router.post(
           price: price ? parseFloat(price) : (course.price || null),
           eventDate: eventDate,
           startDate: startDate, // Set to event date
-          endDate: daysToBlock > 1 ? endDate : null, // Set end date if multi-day
+          endDate: availabilities.length > 1 ? endDate : null, // Set end date if multi-day
           category: course.category,
           city: city || course.city || null,
           state: state || course.state || null,
@@ -948,44 +941,17 @@ router.post(
         },
       });
 
-      // Block multiple days based on course duration
+      // Block all selected dates
       try {
-        const datesToBlock: Date[] = [];
-        for (let i = 0; i < daysToBlock; i++) {
-          const blockDate = new Date(eventDate);
-          blockDate.setDate(blockDate.getDate() + i);
-          datesToBlock.push(blockDate);
-        }
-
-        // Update all availability records for the duration period
-        for (const blockDate of datesToBlock) {
-          // Find availability record for this date
-          const availabilityRecord = await prisma.trainerAvailability.findFirst({
-            where: {
-              trainerId: trainerId,
-              date: blockDate,
-            },
+        // Update all selected availability records to BOOKED
+        for (const availability of availabilities) {
+          await prisma.trainerAvailability.update({
+            where: { id: availability.id },
+            data: { status: 'BOOKED' },
           });
-
-          if (availabilityRecord) {
-            // Update existing availability to BOOKED
-            await prisma.trainerAvailability.update({
-              where: { id: availabilityRecord.id },
-              data: { status: 'BOOKED' },
-            });
-          } else {
-            // Create new availability record as BOOKED if it doesn't exist
-            await prisma.trainerAvailability.create({
-              data: {
-                trainerId: trainerId,
-                date: blockDate,
-                status: 'BOOKED',
-              },
-            });
-          }
         }
 
-        console.log(`[Event Creation] Blocked ${daysToBlock} day(s) for trainer ${trainerId} starting from ${eventDate.toISOString().split('T')[0]}`);
+        console.log(`[Event Creation] Blocked ${availabilities.length} day(s) for trainer ${trainerId}: ${availabilities.map(a => a.date.toISOString().split('T')[0]).join(', ')}`);
       } catch (error: any) {
         console.error('Error updating trainer availability status:', error);
         // Continue even if update fails - event is already created

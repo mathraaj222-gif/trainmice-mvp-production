@@ -277,40 +277,48 @@ router.put(
         },
       });
 
-      // If event status is changed to CANCELLED, update trainer availability to AVAILABLE
+      // If event status is changed to CANCELLED, update trainer availability to AVAILABLE for all event dates
       if (status === 'CANCELLED' && event.trainerId && event.eventDate) {
         try {
-          const eventDate = new Date(event.eventDate);
-          eventDate.setHours(0, 0, 0, 0);
+          const startDate = new Date(event.eventDate);
+          startDate.setHours(0, 0, 0, 0);
+          
+          // Determine end date - use event.endDate if available, otherwise just the start date
+          let endDate = updated.endDate ? new Date(updated.endDate) : new Date(startDate);
+          endDate.setHours(23, 59, 59, 999);
 
-          // Find trainer availability for this date
-          const availability = await prisma.trainerAvailability.findFirst({
+          // Find all BOOKED availability records for the trainer within the event date range
+          const availabilities = await prisma.trainerAvailability.findMany({
             where: {
               trainerId: event.trainerId,
-              date: eventDate,
+              date: {
+                gte: startDate,
+                lte: endDate,
+              },
               status: 'BOOKED',
             },
           });
 
-          if (availability) {
-            // Update availability to AVAILABLE
+          // Update all found availability records to AVAILABLE
+          for (const availability of availabilities) {
             await prisma.trainerAvailability.update({
               where: { id: availability.id },
               data: { status: 'AVAILABLE' },
             });
+          }
 
-            console.log(`Updated trainer availability to AVAILABLE for trainer ${event.trainerId} on ${eventDate.toISOString()}`);
+          if (availabilities.length > 0) {
+            console.log(`Updated ${availabilities.length} trainer availability record(s) to AVAILABLE for trainer ${event.trainerId} from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
           } else {
-            // If no availability record exists, create one as AVAILABLE
+            // If no availability records found, create one for the start date as AVAILABLE
             await prisma.trainerAvailability.create({
               data: {
                 trainerId: event.trainerId,
-                date: eventDate,
+                date: startDate,
                 status: 'AVAILABLE',
               },
             });
-
-            console.log(`Created AVAILABLE availability for trainer ${event.trainerId} on ${eventDate.toISOString()}`);
+            console.log(`Created AVAILABLE availability for trainer ${event.trainerId} on ${startDate.toISOString().split('T')[0]}`);
           }
         } catch (availabilityError) {
           // Log error but don't fail the request
