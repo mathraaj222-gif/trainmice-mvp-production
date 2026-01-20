@@ -99,7 +99,9 @@ export const EnhancedTrainersPage: React.FC = () => {
         hrdcAccreditationValidUntil: t.hrdcAccreditationValidUntil || null,
         // Store full areasOfExpertise array for filtering
         areasOfExpertise: Array.isArray(t.areasOfExpertise) ? t.areasOfExpertise : [],
-      } as Trainer & { hrdcAccreditationId?: string | null; hrdcAccreditationValidUntil?: string | Date | null; areasOfExpertise?: string[] }));
+        // Store custom_trainer_id for display and search
+        custom_trainer_id: t.customTrainerId || null,
+      } as Trainer & { hrdcAccreditationId?: string | null; hrdcAccreditationValidUntil?: string | Date | null; areasOfExpertise?: string[]; custom_trainer_id?: string | null }));
 
       setTrainers(mappedTrainers);
 
@@ -127,11 +129,16 @@ export const EnhancedTrainersPage: React.FC = () => {
     let filtered = [...trainers];
 
     if (searchTerm) {
-      filtered = filtered.filter(trainer =>
-        trainer.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trainer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trainer.phone?.includes(searchTerm)
-      );
+      filtered = filtered.filter(trainer => {
+        const searchLower = searchTerm.toLowerCase();
+        const customTrainerId = (trainer as any).custom_trainer_id || '';
+        return (
+          trainer.full_name?.toLowerCase().includes(searchLower) ||
+          trainer.email?.toLowerCase().includes(searchLower) ||
+          trainer.phone?.includes(searchTerm) ||
+          customTrainerId.toLowerCase().includes(searchLower)
+        );
+      });
     }
 
     if (selectedExpertise !== 'all') {
@@ -244,7 +251,9 @@ export const EnhancedTrainersPage: React.FC = () => {
         // Store HRDC data for use in modal
         hrdcAccreditationId: t.hrdcAccreditationId || null,
         hrdcAccreditationValidUntil: t.hrdcAccreditationValidUntil || null,
-      } as Trainer & { hrdcAccreditationId?: string | null; hrdcAccreditationValidUntil?: string | Date | null }));
+        // Store custom_trainer_id for display and search
+        custom_trainer_id: t.customTrainerId || null,
+      } as Trainer & { hrdcAccreditationId?: string | null; hrdcAccreditationValidUntil?: string | Date | null; custom_trainer_id?: string | null }));
 
       setFilteredTrainers(mappedTrainers);
       showToast(`Found ${mappedTrainers.length} trainer(s)`, 'success');
@@ -343,7 +352,7 @@ export const EnhancedTrainersPage: React.FC = () => {
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search trainers..."
+              placeholder="Search by name or Trainer ID..."
             />
           </div>
           <Select
@@ -372,6 +381,7 @@ export const EnhancedTrainersPage: React.FC = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trainer ID</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Specialization</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
@@ -382,7 +392,7 @@ export const EnhancedTrainersPage: React.FC = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredTrainers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     No trainers found
                   </td>
                 </tr>
@@ -392,6 +402,11 @@ export const EnhancedTrainersPage: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{trainer.full_name}</div>
                       <div className="text-sm text-gray-500">{trainer.email}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-700 font-mono">
+                        {(trainer as any).custom_trainer_id || 'N/A'}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-2 text-sm text-gray-600">
