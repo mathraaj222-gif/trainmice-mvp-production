@@ -10,7 +10,7 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 interface EventCreationFormProps {
   course: Course;
   onSubmit: (data: { 
-    availabilityId: string; 
+    availabilityIds: string[]; 
     courseType: 'IN_HOUSE' | 'PUBLIC'; 
     courseMode: 'PHYSICAL' | 'ONLINE' | 'HYBRID';
     price: string | null;
@@ -26,9 +26,27 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
   onSubmit,
   onCancel,
 }) => {
-  const [selectedAvailabilityId, setSelectedAvailabilityId] = useState<string>('');
+  const [selectedAvailabilityIds, setSelectedAvailabilityIds] = useState<string[]>([]);
   const [availableDates, setAvailableDates] = useState<Array<{ date: string; availabilityId: string }>>([]);
   const [loadingDates, setLoadingDates] = useState(false);
+  
+  // Calculate number of days needed based on course duration
+  const calculateDaysNeeded = (): number => {
+    if (!course.duration_hours || course.duration_hours <= 0) return 1;
+    
+    const unit = (course.duration_unit || 'hours').toLowerCase();
+    
+    if (unit === 'days') {
+      return Math.ceil(course.duration_hours);
+    } else if (unit === 'half_day') {
+      return Math.ceil(course.duration_hours * 0.5);
+    } else {
+      // Default: hours - assume 8 hours per day
+      return Math.ceil(course.duration_hours / 8);
+    }
+  };
+  
+  const daysNeeded = calculateDaysNeeded();
   const [courseType, setCourseType] = useState<'IN_HOUSE' | 'PUBLIC'>('PUBLIC');
   const [courseMode, setCourseMode] = useState<'PHYSICAL' | 'ONLINE' | 'HYBRID'>('PHYSICAL');
   const [price, setPrice] = useState(course.price?.toString() || '');
@@ -140,8 +158,8 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!selectedAvailabilityId) {
-      newErrors.availabilityId = 'Please select a date from trainer availability';
+    if (selectedAvailabilityIds.length !== daysNeeded) {
+      newErrors.availabilityIds = `Please select exactly ${daysNeeded} date(s) from trainer availability (based on course duration: ${course.duration_hours} ${course.duration_unit || 'hours'})`;
     }
 
     if (!courseType) {
@@ -155,6 +173,21 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  
+  const handleDateToggle = (availabilityId: string) => {
+    setSelectedAvailabilityIds(prev => {
+      if (prev.includes(availabilityId)) {
+        // Remove if already selected
+        return prev.filter(id => id !== availabilityId);
+      } else {
+        // Add if not selected, but limit to daysNeeded
+        if (prev.length >= daysNeeded) {
+          return prev; // Don't add if we already have enough
+        }
+        return [...prev, availabilityId];
+      }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +199,7 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({
-        availabilityId: selectedAvailabilityId,
+        availabilityIds: selectedAvailabilityIds,
         courseType,
         courseMode,
         price: price ? price : null,
@@ -181,7 +214,7 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
     }
   };
 
-  const selectedDate = availableDates.find(d => d.availabilityId === selectedAvailabilityId);
+  const selectedDates = availableDates.filter(d => selectedAvailabilityIds.includes(d.availabilityId));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -196,6 +229,9 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
             {course.description.length > 100 ? '...' : ''}
           </p>
         )}
+        <p className="text-sm text-blue-800 mt-1">
+          <strong>Duration:</strong> {course.duration_hours} {course.duration_unit || 'hours'} ({daysNeeded} day{daysNeeded > 1 ? 's' : ''} needed)
+        </p>
       </div>
 
       {!trainerId ? (
@@ -207,26 +243,9 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
       ) : (
         <>
           <div>
-            <Select
-              label="Event Date * (Based on Trainer Availability)"
-              value={selectedAvailabilityId}
-              onChange={(e) => setSelectedAvailabilityId(e.target.value)}
-              error={errors.availabilityId}
-              required
-              disabled={loadingDates}
-              options={[
-                { value: '', label: 'Select a date' },
-                ...availableDates.map((dateOption) => ({
-                  value: dateOption.availabilityId,
-                  label: new Date(dateOption.date).toLocaleDateString('en-MY', {
-                    weekday: 'short',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  }),
-                })),
-              ]}
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Event Dates * ({daysNeeded} date{daysNeeded > 1 ? 's' : ''} required based on course duration)
+            </label>
             {loadingDates && (
               <div className="mt-2 flex items-center gap-2">
                 <LoadingSpinner size="sm" />
@@ -238,15 +257,63 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
                 No available dates found for this trainer. Please check trainer availability or select a different trainer.
               </p>
             )}
-            {selectedDate && (
-              <p className="text-xs text-gray-500 mt-1">
-                Selected date: {new Date(selectedDate.date).toLocaleDateString('en-MY', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
+            {!loadingDates && availableDates.length > 0 && (
+              <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {availableDates.map((dateOption) => {
+                  const isSelected = selectedAvailabilityIds.includes(dateOption.availabilityId);
+                  const isDisabled = !isSelected && selectedAvailabilityIds.length >= daysNeeded;
+                  return (
+                    <label
+                      key={dateOption.availabilityId}
+                      className={`flex items-center space-x-2 cursor-pointer p-2 rounded ${
+                        isSelected
+                          ? 'bg-teal-50 border-2 border-teal-500'
+                          : isDisabled
+                          ? 'bg-gray-50 opacity-50 cursor-not-allowed'
+                          : 'hover:bg-gray-50 border-2 border-transparent'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleDateToggle(dateOption.availabilityId)}
+                        disabled={isDisabled}
+                        className="w-4 h-4 text-teal-600 focus:ring-teal-500 rounded"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {new Date(dateOption.date).toLocaleDateString('en-MY', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </label>
+                  );
                 })}
-              </p>
+              </div>
+            )}
+            {errors.availabilityIds && (
+              <p className="text-xs text-red-600 mt-1">{errors.availabilityIds}</p>
+            )}
+            {selectedDates.length > 0 && (
+              <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                <p className="text-xs font-medium text-teal-900 mb-2">Selected Dates ({selectedDates.length}/{daysNeeded}):</p>
+                <ul className="text-xs text-teal-800 space-y-1">
+                  {selectedDates
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map((dateOption) => (
+                      <li key={dateOption.availabilityId}>
+                        • {new Date(dateOption.date).toLocaleDateString('en-MY', {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </li>
+                    ))}
+                </ul>
+              </div>
             )}
           </div>
 
@@ -396,7 +463,7 @@ export const EventCreationForm: React.FC<EventCreationFormProps> = ({
         <Button
           type="submit"
           variant="primary"
-          disabled={loading || !trainerId || (!hasInHouse && !hasPublic) || (!hasPhysical && !hasOnline && !hasHybrid) || !selectedAvailabilityId}
+          disabled={loading || !trainerId || (!hasInHouse && !hasPublic) || (!hasPhysical && !hasOnline && !hasHybrid) || selectedAvailabilityIds.length !== daysNeeded}
           className="flex-1"
         >
           {loading ? 'Creating Event...' : 'Create Event'}

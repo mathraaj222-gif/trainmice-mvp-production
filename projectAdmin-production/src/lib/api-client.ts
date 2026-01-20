@@ -361,7 +361,7 @@ export class ApiClient {
   }
 
   async createEventFromCourse(courseId: string, eventData: { 
-    availabilityId: string; 
+    availabilityIds: string[]; 
     courseType: 'IN_HOUSE' | 'PUBLIC'; 
     courseMode: 'PHYSICAL' | 'ONLINE' | 'HYBRID';
     price: string | null;
