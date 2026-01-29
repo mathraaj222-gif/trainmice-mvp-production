@@ -219,7 +219,7 @@ export function EventOverlook() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Event Overlook</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Event Overview</h1>
           <p className="text-sm text-gray-600 mt-1">
             View all your events and their current status
           </p>
