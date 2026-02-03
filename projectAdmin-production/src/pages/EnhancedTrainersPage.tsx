@@ -383,7 +383,17 @@ export const EnhancedTrainersPage: React.FC = () => {
                   <tr key={trainer.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{trainer.full_name}</div>
-                      <div className="text-sm text-gray-500">{trainer.email}</div>
+                      {trainer.email ? (
+                        <a
+                          href={`mailto:${trainer.email}`}
+                          className="text-sm text-teal-600 hover:text-teal-700 hover:underline cursor-pointer"
+                          title={`Send email to ${trainer.email}`}
+                        >
+                          {trainer.email}
+                        </a>
+                      ) : (
+                        <div className="text-sm text-gray-500">N/A</div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-gray-700 font-mono">

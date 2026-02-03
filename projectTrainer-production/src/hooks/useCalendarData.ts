@@ -134,14 +134,17 @@ export function useCalendarData(trainerId: string, startDate: Date, endDate: Dat
             created_at: event.createdAt || event.created_at || new Date().toISOString(),
           };
           
+          // Determine request_type with proper type assertion
+          const requestType: 'public' | 'inhouse' | null = Array.isArray(event.courseType) 
+            ? (event.courseType.includes('PUBLIC') ? 'public' as const : 'inhouse' as const)
+            : (event.courseType === 'PUBLIC' ? 'public' as const : 'inhouse' as const);
+          
           return {
             id: event.id,
             course_id: event.courseId || event.course_id,
             trainer_id: event.trainerId || event.trainer_id,
             client_id: null,
-            request_type: Array.isArray(event.courseType) 
-              ? (event.courseType.includes('PUBLIC') ? 'public' : 'inhouse')
-              : (event.courseType === 'PUBLIC' ? 'public' : 'inhouse'),
+            request_type: requestType,
             client_name: null,
             client_email: null,
             requested_date: eventDate,
@@ -149,7 +152,7 @@ export function useCalendarData(trainerId: string, startDate: Date, endDate: Dat
             requested_time: null,
             requested_month: null,
             selected_slots: null,
-            status: 'confirmed' as const, // Events are confirmed/booked
+            status: 'booked' as const, // Events are confirmed/booked (use 'booked' status to match BookingRequest type)
             location: event.venue || null,
             city: event.city || null,
             state: event.state || null,
