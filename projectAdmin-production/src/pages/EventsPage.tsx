@@ -298,15 +298,10 @@ export const EventsPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 text-sm text-gray-600 mb-4">
-                  <div className="flex items-center">
-                    <Calendar size={16} className="mr-2 text-teal-600" />
-                    <span className="font-medium">Event Date:</span>
-                    <span className="ml-2">{formatDate(event.eventDate)}</span>
-                  </div>
                   {event.startDate && event.endDate && (
                     <div className="flex items-center">
                       <Calendar size={16} className="mr-2 text-teal-600" />
-                      <span className="font-medium">Duration:</span>
+                      <span className="font-medium">Event Date:</span>
                       <span className="ml-2">
                         {formatDate(event.startDate)} - {formatDate(event.endDate)}
                       </span>
