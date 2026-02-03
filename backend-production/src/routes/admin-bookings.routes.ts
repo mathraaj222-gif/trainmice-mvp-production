@@ -146,10 +146,9 @@ router.post('/send-email', async (req: AuthRequest, res) => {
 // Confirm booking
 router.put('/:id/confirm', async (req: AuthRequest, res) => {
   try {
-    const { totalSlots, registeredParticipants, eventDate, availabilityIds } = req.body;
+    const { totalSlots, registeredParticipants, availabilityIds } = req.body;
     // totalSlots: Total number of people who can attend (sets maxPacks for the event)
     // registeredParticipants: Number of people registered now through this request (creates registrations)
-    // eventDate: Required for Public bookings, optional for In-House (uses requestedDate if not provided)
     // availabilityIds: Required - Array of trainer availability IDs to use for the event dates (standardized)
 
     if (!totalSlots || parseInt(String(totalSlots)) < 1) {
