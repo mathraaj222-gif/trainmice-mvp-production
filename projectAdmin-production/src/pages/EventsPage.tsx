@@ -278,6 +278,9 @@ export const EventsPage: React.FC = () => {
                       <Badge variant={getStatusVariant(event.status)}>
                         {event.status}
                       </Badge>
+                      {event.eventCode && (
+                        <Badge variant="info">{event.eventCode}</Badge>
+                      )}
                       {event.course?.courseCode && (
                         <Badge variant="info">{event.course.courseCode}</Badge>
                       )}
