@@ -176,6 +176,7 @@ export const MessagesPage: React.FC = () => {
   const [selectedTrainerId, setSelectedTrainerId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [contactSearchTerm, setContactSearchTerm] = useState('');
+  const [allTrainers, setAllTrainers] = useState<Array<{ id: string; fullName: string; email: string }>>([]);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   const [sendForm, setSendForm] = useState({
@@ -218,6 +219,20 @@ export const MessagesPage: React.FC = () => {
         setMessageThreads(response.threads || []);
         setTrainerMessages(response.legacyMessages || []); // For backward compatibility
         setTotalPages(response.totalPages || 1);
+        
+        // Fetch all trainers to show in contact list
+        try {
+          const trainersResponse = await apiClient.getTrainers();
+          const trainersList = (trainersResponse.trainers || []).map((t: any) => ({
+            id: t.id,
+            fullName: t.fullName || '',
+            email: t.email || '',
+          }));
+          setAllTrainers(trainersList);
+        } catch (error: any) {
+          console.error('Error fetching trainers:', error);
+          // Don't show error toast, just continue without all trainers
+        }
       } else if (activeTab === 'event-enquiries') {
         const params: any = { page: currentPage };
         if (filterType === 'unread') {
@@ -322,52 +337,103 @@ export const MessagesPage: React.FC = () => {
     return true;
   });
 
-  // Helper to check if contact is a MessageThread
-  const isMessageThread = (contact: MessageThread | TrainerMessage): contact is MessageThread => {
-    return 'unreadCount' in contact;
-  };
+  // Unified contact interface
+  interface Contact {
+    trainerId: string;
+    trainer: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
+    lastMessage: string | null;
+    lastMessageTime: string | null;
+    lastMessageBy: string | null;
+    unreadCount: number;
+    hasMessages: boolean;
+  }
 
-  // Get all contacts (combine threads and legacy messages)
+  // Get all contacts (combine threads, legacy messages, and all trainers)
   const allContacts = React.useMemo(() => {
-    const contactsMap = new Map<string, MessageThread | TrainerMessage>();
+    const contactsMap = new Map<string, Contact>();
 
-    // Add threads
-    messageThreads.forEach((thread) => {
-      contactsMap.set(thread.trainerId, thread);
+    // First, add all trainers from database (even without messages)
+    allTrainers.forEach((trainer) => {
+      contactsMap.set(trainer.id, {
+        trainerId: trainer.id,
+        trainer: {
+          id: trainer.id,
+          fullName: trainer.fullName || '',
+          email: trainer.email || '',
+        },
+        lastMessage: null,
+        lastMessageTime: null,
+        lastMessageBy: null,
+        unreadCount: 0,
+        hasMessages: false,
+      });
     });
 
-    // Add legacy messages (only if not already in threads)
+    // Update with threads (overwrite trainers that have messages)
+    messageThreads.forEach((thread) => {
+      contactsMap.set(thread.trainerId, {
+        trainerId: thread.trainerId,
+        trainer: thread.trainer,
+        lastMessage: thread.lastMessage,
+        lastMessageTime: thread.lastMessageTime,
+        lastMessageBy: thread.lastMessageBy,
+        unreadCount: thread.unreadCount,
+        hasMessages: true,
+      });
+    });
+
+    // Update with legacy messages (only if not already in threads)
     trainerMessages.forEach((msg) => {
-      if (!contactsMap.has(msg.trainerId)) {
-        contactsMap.set(msg.trainerId, msg);
+      if (!contactsMap.has(msg.trainerId) || !contactsMap.get(msg.trainerId)?.hasMessages) {
+        contactsMap.set(msg.trainerId, {
+          trainerId: msg.trainerId,
+          trainer: msg.trainer,
+          lastMessage: msg.lastMessage,
+          lastMessageTime: msg.lastMessageTime,
+          lastMessageBy: 'TRAINER',
+          unreadCount: !msg.isRead ? 1 : 0,
+          hasMessages: true,
+        });
       }
     });
 
     return Array.from(contactsMap.values());
-  }, [messageThreads, trainerMessages]);
+  }, [messageThreads, trainerMessages, allTrainers]);
 
   // Filter contacts by search term
   const filteredContacts = allContacts.filter((contact) => {
     if (contactSearchTerm) {
       const trainer = contact.trainer;
-      const lastMessage = isMessageThread(contact) ? contact.lastMessage : contact.lastMessage;
+      const searchLower = contactSearchTerm.toLowerCase();
       return (
-        trainer.fullName.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
-        trainer.email.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
-        (lastMessage && lastMessage.toLowerCase().includes(contactSearchTerm.toLowerCase()))
+        (trainer?.fullName && trainer.fullName.toLowerCase().includes(searchLower)) ||
+        (trainer?.email && trainer.email.toLowerCase().includes(searchLower)) ||
+        (contact.lastMessage && typeof contact.lastMessage === 'string' && contact.lastMessage.toLowerCase().includes(searchLower))
       );
     }
     return true;
   });
 
-  // Sort contacts by last message time (most recent first)
+  // Sort contacts: those with messages first (by time), then those without messages (by name)
   const sortedContacts = [...filteredContacts].sort((a, b) => {
-    const timeA = isMessageThread(a) ? a.lastMessageTime : a.lastMessageTime;
-    const timeB = isMessageThread(b) ? b.lastMessageTime : b.lastMessageTime;
-    if (!timeA && !timeB) return 0;
-    if (!timeA) return 1;
-    if (!timeB) return -1;
-    return new Date(timeB).getTime() - new Date(timeA).getTime();
+    // If both have messages, sort by time
+    if (a.hasMessages && b.hasMessages) {
+      const timeA = a.lastMessageTime;
+      const timeB = b.lastMessageTime;
+      if (!timeA && !timeB) return 0;
+      if (!timeA) return 1;
+      if (!timeB) return -1;
+      return new Date(timeB).getTime() - new Date(timeA).getTime();
+    }
+    // If only one has messages, prioritize it
+    if (a.hasMessages && !b.hasMessages) return -1;
+    if (!a.hasMessages && b.hasMessages) return 1;
+    // If neither has messages, sort by name
+    return (a.trainer.fullName || '').localeCompare(b.trainer.fullName || '');
   });
 
   // Handle contact selection
@@ -376,6 +442,7 @@ export const MessagesPage: React.FC = () => {
     setIsLoadingConversation(true);
     try {
       const response = await apiClient.getTrainerThread(trainerId);
+      const foundContact = allContacts.find(c => c.trainer.id === trainerId);
       const thread = response.thread || {
         id: '',
         trainerId,
@@ -383,7 +450,7 @@ export const MessagesPage: React.FC = () => {
         lastMessageTime: null,
         lastMessageBy: null,
         unreadCount: 0,
-        trainer: response.trainer || allContacts.find(c => c.trainer.id === trainerId)?.trainer || { id: trainerId, fullName: 'Trainer', email: '' },
+        trainer: response.trainer || foundContact?.trainer || { id: trainerId, fullName: 'Trainer', email: '' },
       };
       setSelectedThread(thread);
       setThreadMessages(response.messages || []);
@@ -736,20 +803,9 @@ export const MessagesPage: React.FC = () => {
               ) : (
                 sortedContacts.map((contact) => {
                   const trainer = contact.trainer;
-                  let lastMessage: string | null;
-                  let lastMessageTime: string | null;
-                  let unreadCount: number;
-                  
-                  if (isMessageThread(contact)) {
-                    lastMessage = contact.lastMessage;
-                    lastMessageTime = contact.lastMessageTime;
-                    unreadCount = contact.unreadCount;
-                  } else {
-                    lastMessage = contact.lastMessage;
-                    lastMessageTime = contact.lastMessageTime;
-                    unreadCount = !contact.isRead ? 1 : 0;
-                  }
-                  
+                  const lastMessage = contact.lastMessage;
+                  const lastMessageTime = contact.lastMessageTime;
+                  const unreadCount = contact.unreadCount;
                   const isSelected = selectedTrainerId === trainer.id;
                   const hasUnread = unreadCount > 0;
 
@@ -779,7 +835,7 @@ export const MessagesPage: React.FC = () => {
                           )}
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-sm text-gray-600 truncate flex-1">
+                          <p className={`text-sm truncate flex-1 ${contact.hasMessages ? 'text-gray-600' : 'text-gray-400 italic'}`}>
                             {lastMessage || 'No messages yet'}
                           </p>
                           {hasUnread && (
