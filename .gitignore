@@ -73,3 +73,7 @@ uploads/*
 # Optional: Keep these if you want to track them
 # !package-lock.json
 
+# Firebase Secrets
+serviceAccountKey.json
+backend-production/serviceAccountKey.json
+
