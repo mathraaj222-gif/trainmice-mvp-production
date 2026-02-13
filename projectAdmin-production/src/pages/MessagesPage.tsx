@@ -219,7 +219,7 @@ export const MessagesPage: React.FC = () => {
         setMessageThreads(response.threads || []);
         setTrainerMessages(response.legacyMessages || []); // For backward compatibility
         setTotalPages(response.totalPages || 1);
-        
+
         // Fetch all trainers to show in contact list
         try {
           const trainersResponse = await apiClient.getTrainers();
@@ -486,7 +486,7 @@ export const MessagesPage: React.FC = () => {
       const response = await apiClient.getTrainerThread(selectedThread.trainerId);
       setThreadMessages(response.messages || []);
       fetchData();
-      
+
       // Scroll to bottom after sending
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -542,44 +542,40 @@ export const MessagesPage: React.FC = () => {
       <div className="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm">
         <button
           onClick={() => setActiveTab('contact')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'contact'
-              ? 'bg-teal-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'contact'
+            ? 'bg-teal-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
         >
           <Mail size={18} className="inline mr-2" />
           Contact Submissions
         </button>
         <button
           onClick={() => setActiveTab('notifications')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'notifications'
-              ? 'bg-teal-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'notifications'
+            ? 'bg-teal-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
         >
           <MessageSquare size={18} className="inline mr-2" />
           Notifications
         </button>
         <button
           onClick={() => setActiveTab('trainer-messages')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'trainer-messages'
-              ? 'bg-teal-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'trainer-messages'
+            ? 'bg-teal-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
         >
           <MessageSquare size={18} className="inline mr-2" />
           Messages from Trainer
         </button>
         <button
           onClick={() => setActiveTab('event-enquiries')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors relative ${
-            activeTab === 'event-enquiries'
-              ? 'bg-teal-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors relative ${activeTab === 'event-enquiries'
+            ? 'bg-teal-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
         >
           <MessageSquare size={18} className="inline mr-2" />
           Enquiry about Event
@@ -619,21 +615,50 @@ export const MessagesPage: React.FC = () => {
               ]}
             />
           )}
-          {(activeTab === 'trainer-messages' || activeTab === 'event-enquiries') && (
-            <Select
-              label="Status"
-              value={filterType === 'unread' || filterType === 'read' ? filterType : 'all'}
-              onChange={(e) => {
-                setFilterType(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'unread', label: 'Unread' },
-                { value: 'read', label: 'Read' },
-              ]}
-            />
+          {activeTab === 'event-enquiries' && (
+            <div className="flex flex-col space-y-2 min-w-[200px]">
+              <span className="text-sm font-medium text-gray-700">Status</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setFilterType('all');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filterType === 'all'
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterType('unread');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filterType === 'unread'
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  Unread
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterType('read');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filterType === 'read'
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  Read
+                </button>
+              </div>
+            </div>
           )}
+
         </div>
       </Card>
 
@@ -775,8 +800,8 @@ export const MessagesPage: React.FC = () => {
         <div className="flex h-[calc(100vh-300px)] border border-gray-200 rounded-lg overflow-hidden bg-white">
           {/* Left Sidebar - Contact List */}
           <div className="w-full md:w-1/3 border-r border-gray-200 flex flex-col bg-gray-50">
-            {/* Search Bar */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            {/* Search Bar & Filters */}
+            <div className="p-4 border-b border-gray-200 bg-white space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
@@ -786,6 +811,46 @@ export const MessagesPage: React.FC = () => {
                   onChange={(e) => setContactSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
+              </div>
+
+              {/* Filter Buttons */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setFilterType('all');
+                    setCurrentPage(1);
+                  }}
+                  className={`flex-1 py-1.5 px-3 text-sm font-medium rounded-md transition-colors ${filterType === 'all'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterType('unread');
+                    setCurrentPage(1);
+                  }}
+                  className={`flex-1 py-1.5 px-3 text-sm font-medium rounded-md transition-colors ${filterType === 'unread'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  Unread
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterType('read');
+                    setCurrentPage(1);
+                  }}
+                  className={`flex-1 py-1.5 px-3 text-sm font-medium rounded-md transition-colors ${filterType === 'read'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  Read
+                </button>
               </div>
             </div>
 
@@ -813,9 +878,8 @@ export const MessagesPage: React.FC = () => {
                     <div
                       key={trainer.id}
                       onClick={() => handleContactSelect(trainer.id)}
-                      className={`flex items-center p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-100 transition-colors ${
-                        isSelected ? 'bg-teal-50 border-l-4 border-l-teal-500' : ''
-                      } ${hasUnread ? 'bg-blue-50' : ''}`}
+                      className={`flex items-center p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-100 transition-colors ${isSelected ? 'bg-teal-50 border-l-4 border-l-teal-500' : ''
+                        } ${hasUnread ? 'bg-blue-50' : ''}`}
                     >
                       {/* Avatar */}
                       <div className="flex-shrink-0 w-12 h-12 rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold text-sm mr-3">
@@ -839,7 +903,7 @@ export const MessagesPage: React.FC = () => {
                             {lastMessage || 'No messages yet'}
                           </p>
                           {hasUnread && (
-                            <span className="ml-2 flex-shrink-0 bg-teal-600 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                            <span className="ml-2 flex-shrink-0 bg-green-600 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
                               {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
                           )}
@@ -904,17 +968,15 @@ export const MessagesPage: React.FC = () => {
                             className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                           >
                             <div
-                              className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${
-                                isAdmin
-                                  ? 'bg-teal-600 text-white rounded-tr-sm'
-                                  : 'bg-white text-gray-900 rounded-tl-sm border border-gray-200'
-                              }`}
+                              className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${isAdmin
+                                ? 'bg-teal-600 text-white rounded-tr-sm'
+                                : 'bg-white text-gray-900 rounded-tl-sm border border-gray-200'
+                                }`}
                             >
                               <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.message}</p>
                               <p
-                                className={`text-xs mt-1 ${
-                                  isAdmin ? 'text-teal-100' : 'text-gray-500'
-                                }`}
+                                className={`text-xs mt-1 ${isAdmin ? 'text-teal-100' : 'text-gray-500'
+                                  }`}
                               >
                                 {formatMessageTime(msg.createdAt)}
                               </p>
@@ -1018,17 +1080,15 @@ export const MessagesPage: React.FC = () => {
                           className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${
-                              isAdmin
-                                ? 'bg-teal-600 text-white rounded-tr-sm'
-                                : 'bg-white text-gray-900 rounded-tl-sm border border-gray-200'
-                            }`}
+                            className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${isAdmin
+                              ? 'bg-teal-600 text-white rounded-tr-sm'
+                              : 'bg-white text-gray-900 rounded-tl-sm border border-gray-200'
+                              }`}
                           >
                             <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.message}</p>
                             <p
-                              className={`text-xs mt-1 ${
-                                isAdmin ? 'text-teal-100' : 'text-gray-500'
-                              }`}
+                              className={`text-xs mt-1 ${isAdmin ? 'text-teal-100' : 'text-gray-500'
+                                }`}
                             >
                               {formatMessageTime(msg.createdAt)}
                             </p>
@@ -1101,9 +1161,8 @@ export const MessagesPage: React.FC = () => {
                 return true;
               })
               .map((enquiry) => (
-                <Card key={enquiry.id} className={`hover:shadow-md transition-shadow ${
-                  enquiry.unreadCount > 0 || !enquiry.isRead ? 'border-l-4 border-l-green-500 bg-green-50' : ''
-                }`}>
+                <Card key={enquiry.id} className={`hover:shadow-md transition-shadow ${enquiry.unreadCount > 0 || !enquiry.isRead ? 'border-l-4 border-l-green-500 bg-green-50' : ''
+                  }`}>
                   <div className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -1327,11 +1386,10 @@ export const MessagesPage: React.FC = () => {
                       className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
-                          isAdmin
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-white text-gray-800 border border-gray-200'
-                        }`}
+                        className={`max-w-[70%] rounded-lg p-3 ${isAdmin
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-white text-gray-800 border border-gray-200'
+                          }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-medium opacity-75">
@@ -1375,13 +1433,13 @@ export const MessagesPage: React.FC = () => {
                   variant="primary"
                   onClick={async () => {
                     if (!replyMessage.trim() || !selectedThread) return;
-                    
+
                     try {
                       setReplying(true);
                       await apiClient.replyToTrainer(selectedThread.trainerId, replyMessage.trim());
                       showToast('Reply sent successfully', 'success');
                       setReplyMessage('');
-                      
+
                       // Refresh thread messages
                       const response = await apiClient.getTrainerThread(selectedThread.trainerId);
                       setThreadMessages(response.messages || []);
@@ -1452,11 +1510,10 @@ export const MessagesPage: React.FC = () => {
                       className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
-                          isAdmin
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-white text-gray-800 border border-gray-200'
-                        }`}
+                        className={`max-w-[70%] rounded-lg p-3 ${isAdmin
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-white text-gray-800 border border-gray-200'
+                          }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-medium opacity-75">
@@ -1500,13 +1557,13 @@ export const MessagesPage: React.FC = () => {
                   variant="primary"
                   onClick={async () => {
                     if (!eventEnquiryReply.trim() || !selectedEventEnquiry) return;
-                    
+
                     try {
                       setReplyingToEnquiry(true);
                       await apiClient.replyToEventEnquiry(selectedEventEnquiry.id, eventEnquiryReply.trim());
                       showToast('Reply sent successfully', 'success');
                       setEventEnquiryReply('');
-                      
+
                       // Refresh conversation
                       const response = await apiClient.getEventEnquiryConversation(selectedEventEnquiry.id);
                       setEventEnquiryMessages(response.messages || []);
